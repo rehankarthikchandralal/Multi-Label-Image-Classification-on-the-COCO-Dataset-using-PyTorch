@@ -29,59 +29,30 @@ def process_annotations(file_prefix):
     print("the training files are",train_file)
     print("the validation files are",val_file)
 
-    # # Load the annotations
-    # with open(train_file, 'r') as f:
-    #     train_data = json.load(f)
-    # with open(val_file, 'r') as f:
-    #     val_data = json.load(f)
+    # Load the annotations
+    with open(train_file, 'r') as f:
+        train_data = json.load(f)
+    with open(val_file, 'r') as f:
+        val_data = json.load(f)
 
-    # # Combine train and val images and annotations
-    # combined_images = train_data["images"] + val_data["images"]
-    # combined_annotations = train_data["annotations"] + val_data["annotations"]
-    # categories = train_data["categories"]  # Categories remain the same
+    # Combine train and val images and annotations
+    combined_images = train_data["images"] + val_data["images"]
+    combined_annotations = train_data["annotations"] + val_data["annotations"]
 
-    # # Shuffle combined images
-    # random.shuffle(combined_images)
+    # Shuffle combined images
+    random.shuffle(combined_images)
 
-    # # Compute split sizes
-    # total_images = len(combined_images)
-    # train_size = int(total_images * train_ratio)
-    # val_size = int(total_images * val_ratio)
+    # Compute split sizes
+    total_images = len(combined_images)
+    train_size = int(total_images * train_ratio)
+    print("train size is",train_size)
+    val_size = int(total_images * val_ratio)
+    print("validation size is",val_size)
 
-    # # Split images into train, val, test
-    # train_images = combined_images[:train_size]
-    # val_images = combined_images[train_size:train_size + val_size]
-    # test_images = combined_images[train_size + val_size:]
-
-#     # Helper function to filter annotations based on image IDs
-#     def filter_annotations(images_split):
-#         image_ids = {img["id"] for img in images_split}
-#         return [ann for ann in combined_annotations if ann["image_id"] in image_ids]
-
-#     # Filter annotations for each split
-#     train_annotations = filter_annotations(train_images)
-#     val_annotations = filter_annotations(val_images)
-#     test_annotations = filter_annotations(test_images)
-
-#     # Save each split as a new JSON file
-#     def save_split(images_split, annotations_split, split_name):
-#         split_data = {
-#             "images": images_split,
-#             "annotations": annotations_split,
-#             "categories": categories
-#         }
-#         output_file = os.path.join(output_dir, f"{file_prefix}_{split_name}.json")
-#         with open(output_file, 'w') as f:
-#             json.dump(split_data, f)
-
-#     save_split(train_images, train_annotations, "train")
-#     save_split(val_images, val_annotations, "val")
-#     save_split(test_images, test_annotations, "test")
-
-#     print(f"Completed splitting for {file_prefix} annotations!")
+    print("the length of total images is ",total_images)
 
 # Process all annotation types
 for file_prefix in annotation_files:
     process_annotations(file_prefix)
 
-# print(f"All splits saved in {output_dir}")
+

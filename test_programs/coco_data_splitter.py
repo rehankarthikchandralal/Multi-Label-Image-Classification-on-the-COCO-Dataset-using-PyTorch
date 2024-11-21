@@ -2,42 +2,34 @@ import json
 import random
 import os
 
-# Paths to my directories and annotation files
+# Paths to directories and annotation files
 images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/coco/images"
-annotations_dir = "/home/rehan/Projects/Pytorch_Image_Classification/coco/annotations/annotations"
+annotations_dir = "/home/rehan/Projects/Pytorch_Image_Classification/coco/annotations/annotations/"
 output_dir = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets"
 os.makedirs(output_dir, exist_ok=True)  # Ensure the output directory exists
-
-# Annotation files to process
-annotation_files = [
-    "captions", 
-    "instances",   
-    "person_keypoints"   
-]
 
 # Define split ratios (80:10:10)
 train_ratio = 0.8
 val_ratio = 0.1
 test_ratio = 0.1
 
+# File prefix to process
+file_prefix = "instances"
+
 def process_annotations(file_prefix):
     print(f"Processing {file_prefix} annotations...")
-    
-    # Paths to train and val annotation files
+
+    # Path to the train annotation file
     train_file = os.path.join(annotations_dir, f"{file_prefix}_train2017.json")
-    val_file = os.path.join(annotations_dir, f"{file_prefix}_val2017.json")
-    print("the training files are",train_file)
-    print("the validation files are",val_file)
+    print("The training file is:", train_file)
 
     # Load the annotations
     with open(train_file, 'r') as f:
         train_data = json.load(f)
-    with open(val_file, 'r') as f:
-        val_data = json.load(f)
 
-    # Combine train and val images and annotations
-    combined_images = train_data["images"] + val_data["images"]
-    combined_annotations = train_data["annotations"] + val_data["annotations"]
+    # Use only the train images and annotations
+    combined_images = train_data["images"]
+    combined_annotations = train_data["annotations"]
 
     # Shuffle combined images
     random.shuffle(combined_images)
@@ -45,20 +37,20 @@ def process_annotations(file_prefix):
     # Compute split sizes
     total_images = len(combined_images)
     train_size = int(total_images * train_ratio)
-    print("train size is",train_size)
     val_size = int(total_images * val_ratio)
-    print("validation size is",val_size)
 
-    print("the length of total images is ",total_images)
+    print("Total images:", total_images)
+    print("Train size:", train_size)
+    print("Validation size:", val_size)
 
     # Split images into train, val, test
     train_images = combined_images[:train_size]
     val_images = combined_images[train_size:train_size + val_size]
     test_images = combined_images[train_size + val_size:]
 
-    print("The length of train_images is",len(train_images))
-    print("The length of val_images is",len(val_images))
-    print("The length of test_images is",len(test_images))
+    print("Train images:", len(train_images))
+    print("Validation images:", len(val_images))
+    print("Test images:", len(test_images))
 
     # Helper function to filter annotations based on image IDs
     def filter_annotations(images_split):
@@ -70,9 +62,9 @@ def process_annotations(file_prefix):
     val_annotations = filter_annotations(val_images)
     test_annotations = filter_annotations(test_images)
 
-    print("The length of train_annotations is",len(train_annotations))
-    print("The length of val_annotations is",len(val_annotations))
-    print("The length of test_annotations is",len(test_annotations))
+    print("Train annotations:", len(train_annotations))
+    print("Validation annotations:", len(val_annotations))
+    print("Test annotations:", len(test_annotations))
 
     # Save each split as a new JSON file
     def save_split(images_split, annotations_split, split_name):
@@ -83,6 +75,7 @@ def process_annotations(file_prefix):
         output_file = os.path.join(output_dir, f"{file_prefix}_{split_name}.json")
         with open(output_file, 'w') as f:
             json.dump(split_data, f)
+        print(f"{split_name.capitalize()} split saved to {output_file}")
 
     save_split(train_images, train_annotations, "train")
     save_split(val_images, val_annotations, "val")
@@ -90,8 +83,6 @@ def process_annotations(file_prefix):
 
     print(f"Completed splitting for {file_prefix} annotations!")
 
-# Process all annotation types
-for file_prefix in annotation_files:
-    process_annotations(file_prefix)
-
+# Process the "instances_train2017" annotation file only
+process_annotations(file_prefix)
 

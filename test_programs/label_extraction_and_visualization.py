@@ -56,7 +56,7 @@ print(f"Number of different labels: {len(unique_labels)}")
 
 #  Visualize label distribution (histogram)
 plt.figure(figsize=(12, 6))
-category_counts.plot(kind='bar', color='skyblue')
+category_counts.plot(kind='bar', color='green')
 plt.title('Distribution of Object Categories in COCO Training Set')
 plt.xlabel('Category')
 plt.ylabel('Frequency')

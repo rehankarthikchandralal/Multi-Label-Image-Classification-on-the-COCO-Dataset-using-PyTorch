@@ -4,3 +4,9 @@ Instances files contain annotations for object detection, where objects within t
 bounding boxes and ifcrowd flag is used to simplify the data for supervised learning, instead of just a label associated with an image, we also give additional information that will help us train the model well to do classification
 
 Person files contain annotations for human pose estimation. Specifically, they describe the locations of key body joints (keypoints) for people in Instances 
+The COCO dataset is a multi-label dataset, where each image can contain multiple objects, and therefore, multiple labels (categories) are associated with a single imag
+Disadvantage of label imbalance in Multilabel classifier
+The model may focus on learning patterns for the majority labels, leading to a lack of sensitivity to minority labels.
+The loss function may be dominated by the contribution from majority labels, making it difficult for the model to learn from the minority labels.
+   
+Yes, all 6 of the files you mentioned represent annotations in different formats or types of annotation for the COCO dataset. 

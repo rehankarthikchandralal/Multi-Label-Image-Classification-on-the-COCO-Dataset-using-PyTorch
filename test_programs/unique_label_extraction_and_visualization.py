@@ -3,7 +3,7 @@ import json
 import matplotlib.pyplot as plt
 
 
-# Mapping of category IDs to category names (for the COCO dataset)
+# Mapping of category IDs to category names for the COCO dataset
 category_mapping = {
     1: "person", 2: "bicycle", 3: "car", 4: "motorcycle", 5: "airplane", 
     6: "bus", 7: "train", 8: "truck", 9: "boat", 10: "traffic light", 
@@ -45,7 +45,7 @@ def extract_labels_from_instances(json_file_path):
     return category_ids, unique_labels
 
 
-json_file_path = '/home/rehan/Projects/Pytorch_Image_Classification/coco/annotations/annotations/instances_train2017.json'  # Correct file path
+json_file_path = '/home/rehan/Projects/Pytorch_Image_Classification/coco/annotations/annotations/instances_train2017.json'# Correct file path
 category_ids, unique_labels = extract_labels_from_instances(json_file_path)
 
 # Convert category_ids to a DataFrame to easily count occurrences

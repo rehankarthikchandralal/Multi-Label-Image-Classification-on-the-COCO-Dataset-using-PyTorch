@@ -51,6 +51,45 @@ def process_annotations(file_prefix):
 
     print("the length of total images is ",total_images)
 
+    # Split images into train, val, test
+    train_images = combined_images[:train_size]
+    val_images = combined_images[train_size:train_size + val_size]
+    test_images = combined_images[train_size + val_size:]
+
+    print("The length of train_images is",len(train_images))
+    print("The length of val_images is",len(val_images))
+    print("The length of test_images is",len(test_images))
+
+    # Helper function to filter annotations based on image IDs
+    def filter_annotations(images_split):
+        image_ids = {img["id"] for img in images_split}
+        return [ann for ann in combined_annotations if ann["image_id"] in image_ids]
+
+    # Filter annotations for each split
+    train_annotations = filter_annotations(train_images)
+    val_annotations = filter_annotations(val_images)
+    test_annotations = filter_annotations(test_images)
+
+    print("The length of train_annotations is",len(train_annotations))
+    print("The length of val_annotations is",len(val_annotations))
+    print("The length of test_annotations is",len(test_annotations))
+
+    # Save each split as a new JSON file
+    def save_split(images_split, annotations_split, split_name):
+        split_data = {
+            "images": images_split,
+            "annotations": annotations_split
+        }
+        output_file = os.path.join(output_dir, f"{file_prefix}_{split_name}.json")
+        with open(output_file, 'w') as f:
+            json.dump(split_data, f)
+
+    save_split(train_images, train_annotations, "train")
+    save_split(val_images, val_annotations, "val")
+    save_split(test_images, test_annotations, "test")
+
+    print(f"Completed splitting for {file_prefix} annotations!")
+
 # Process all annotation types
 for file_prefix in annotation_files:
     process_annotations(file_prefix)

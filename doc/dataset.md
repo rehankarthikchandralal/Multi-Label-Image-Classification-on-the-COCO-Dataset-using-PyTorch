@@ -20,3 +20,30 @@ Smaller images require less computational resources, leading to faster training 
  Images and annotations are saved together in JSON format after coco_data_splitter.py
  Reason:By saving images and annotations in JSON format, you create a flexible, readable, and interoperable representation of your data. 
  2 images are lost , i think because of int explicit conversion
+
+ Top-level structure of the instances_train2017.json
+ {
+    "info": {},
+    "licenses": [],
+    "images": [],
+    "annotations": [],
+    "categories": []
+}
+
+info provides metadata about the dataset
+example
+"info": {
+    "description": "COCO 2017 Dataset",
+    "version": "1.0",
+    "year": 2017,
+    "contributor": "COCO Consortium",
+    "date_created": "2017-09-01T00:00:00+00:00"
+}
+licenses give license info
+"licenses": [
+    {
+        "id": 1,
+        "name": "Attribution-NonCommercial-ShareAlike License",
+        "url": "http://creativecommons.org/licenses/by-nc-sa/2.0/"
+    }
+]

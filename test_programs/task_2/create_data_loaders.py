@@ -3,6 +3,7 @@ from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 import torch
 from sklearn.model_selection import train_test_split
+from torchvision import transforms
 
 # Directory paths
 processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"  # Path to processed images directory
@@ -13,12 +14,14 @@ if not os.path.exists(processed_images_dir):
 
 # Define a custom Dataset class
 class ProcessedImagesDataset(Dataset):
-    def __init__(self, images_dir):
+    def __init__(self, images_dir, transform=None):
         """
         Args:
             images_dir (str): Path to the directory containing processed images.
+            transform (callable, optional): Optional transform to be applied on an image.
         """
         self.images_dir = images_dir
+        self.transform = transform
         
         # Get all image filenames from the directory
         self.image_filenames = [f for f in os.listdir(images_dir) if f.lower().endswith('.jpg')]
@@ -35,11 +38,21 @@ class ProcessedImagesDataset(Dataset):
         # Open the image
         image = Image.open(img_path).convert('RGB')
         
-        return image, img_name  # We return the image and its filename for reference
+        # Apply transformations if any
+        if self.transform:
+            image = self.transform(image)
+        
+        return image, img_name  # Return the image and its filename for reference
 
 
-# Create dataset object for the processed images
-dataset = ProcessedImagesDataset(images_dir=processed_images_dir)
+# Define transformations for converting to tensor and normalizing
+transform = transforms.Compose([
+    transforms.ToTensor(),  # Convert image to tensor
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize based on ImageNet stats
+])
+
+# Create dataset object for the processed images with transformations
+dataset = ProcessedImagesDataset(images_dir=processed_images_dir, transform=transform)
 
 # Split dataset into train and validation sets (80% train, 20% validation)
 train_filenames, val_filenames = train_test_split(dataset.image_filenames, test_size=0.2, random_state=42)

@@ -1,70 +1,58 @@
 import os
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
 import torch
 from sklearn.model_selection import train_test_split
 
 # Directory paths
-processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"  # Path to processed images
-output_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"  # Path to where processed images will be saved
+processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"  # Path to processed images directory
 
-# Ensure the output directory exists
-os.makedirs(output_dir, exist_ok=True)
+# Ensure the processed images directory exists
+if not os.path.exists(processed_images_dir):
+    raise FileNotFoundError(f"Processed images directory not found: {processed_images_dir}")
 
-# Define a custom Dataset class for loading the images
-class ImageClassificationDataset(Dataset):
-    def __init__(self, images_dir, transform=None):
+# Define a custom Dataset class
+class ProcessedImagesDataset(Dataset):
+    def __init__(self, images_dir):
         """
         Args:
-            images_dir (str): Directory containing the processed images.
-            transform (callable, optional): Optional transform to be applied on an image.
+            images_dir (str): Path to the directory containing processed images.
         """
         self.images_dir = images_dir
-        self.transform = transform
-        self.image_paths = [os.path.join(images_dir, fname) for fname in os.listdir(images_dir) if fname.endswith('.jpg')]
-    
+        
+        # Get all image filenames from the directory
+        self.image_filenames = [f for f in os.listdir(images_dir) if f.lower().endswith('.jpg')]
+        
     def __len__(self):
-        # Return the total number of images in the dataset
-        return len(self.image_paths)
+        # Return the number of images
+        return len(self.image_filenames)
     
     def __getitem__(self, idx):
-        # Load the image and its corresponding label (if needed)
-        img_path = self.image_paths[idx]
+        # Get image filename
+        img_name = self.image_filenames[idx]
+        img_path = os.path.join(self.images_dir, img_name)
+        
+        # Open the image
         image = Image.open(img_path).convert('RGB')
         
-        # Apply transformations if any
-        if self.transform:
-            image = self.transform(image)
-        
-        return image
+        return image, img_name  # We return the image and its filename for reference
 
-
-# Define transformations for data augmentation, resizing, and normalization
-transform = transforms.Compose([
-    transforms.ToTensor(),  # Convert image to tensor
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize based on ImageNet stats
-])
 
 # Create dataset object for the processed images
-dataset = ImageClassificationDataset(images_dir=processed_images_dir, transform=transform)
+dataset = ProcessedImagesDataset(images_dir=processed_images_dir)
 
 # Split dataset into train and validation sets (80% train, 20% validation)
-train_paths, val_paths = train_test_split(dataset.image_paths, test_size=0.2, random_state=42)
-
-# Create new dataset objects for the train and validation sets
-train_dataset = ImageClassificationDataset(images_dir=processed_images_dir, transform=transform)
-val_dataset = ImageClassificationDataset(images_dir=processed_images_dir, transform=transform)
-
-# Update image paths for the training and validation sets
-train_dataset.image_paths = train_paths
-val_dataset.image_paths = val_paths
+train_filenames, val_filenames = train_test_split(dataset.image_filenames, test_size=0.2, random_state=42)
 
 # Create DataLoader objects for train and validation datasets
+train_dataset = torch.utils.data.Subset(dataset, [dataset.image_filenames.index(f) for f in train_filenames])
+val_dataset = torch.utils.data.Subset(dataset, [dataset.image_filenames.index(f) for f in val_filenames])
+
+# Create DataLoader objects with batch size of 16
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
-# Print out a few samples to verify
-for batch_idx, (images) in enumerate(train_loader):
-    print(f"Batch {batch_idx+1} - Image Shape: {images.shape}")
+# Print sample outputs to verify
+for batch_idx, (images, filenames) in enumerate(train_loader):
+    print(f"Batch {batch_idx+1} - Image Shape: {images.shape} - Filenames: {filenames}")
     break  # Just show the first batch as a sample

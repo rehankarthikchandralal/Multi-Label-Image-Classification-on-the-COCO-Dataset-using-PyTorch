@@ -5,6 +5,25 @@ import torch
 from sklearn.model_selection import train_test_split
 from torchvision import transforms
 
+"""
+This script defines a custom Dataset for loading and processing images from a specified directory, 
+applies transformations including normalization, and creates DataLoader objects for training and 
+validation datasets.
+
+Functions:
+- A custom `ProcessedImagesDataset` class is defined to load images, apply transformations, 
+  and return images along with their filenames.
+- The dataset is split into training and validation sets (80%/20%) using `train_test_split`.
+- `DataLoader` objects are created for both the training and validation sets with a batch size of 16.
+
+Modules used:
+- os: For file handling
+- PIL (Pillow): For opening and processing images
+- torch.utils.data: For creating Dataset and DataLoader objects
+- sklearn.model_selection: For splitting the dataset into training and validation sets
+- torchvision.transforms: For applying image transformations (ToTensor, Normalize)
+"""
+
 # Directory paths
 processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"  # Path to processed images directory
 

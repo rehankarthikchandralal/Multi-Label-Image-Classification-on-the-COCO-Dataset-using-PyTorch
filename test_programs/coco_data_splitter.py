@@ -2,6 +2,12 @@ import json
 import random
 import os
 
+"""
+This script splits the COCO 2017 dataset annotations into train, validation, and test sets
+based on a predefined ratio (80:10:10). It processes the annotations, filters them based on 
+the image splits, and saves the new splits into separate JSON files.
+"""
+
 # Paths to directories and annotation files
 images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/coco/images"
 annotations_dir = "/home/rehan/Projects/Pytorch_Image_Classification/coco/annotations/annotations/"
@@ -16,7 +22,18 @@ test_ratio = 0.1
 # File prefix to process
 file_prefix = "instances"
 
+
 def process_annotations(file_prefix):
+
+    """
+    Processes the COCO annotations for a given file prefix (e.g., 'instances').
+    It splits the data into train, validation, and test sets and saves them into 
+    separate JSON files.
+
+    Args:
+        file_prefix (str): The prefix for the annotation file to process (e.g., 'instances').
+    """
+
     print(f"Processing {file_prefix} annotations...")
 
     # Path to the train annotation file
@@ -52,8 +69,20 @@ def process_annotations(file_prefix):
     print("Validation images:", len(val_images))
     print("Test images:", len(test_images))
 
+
     # Helper function to filter annotations based on image IDs
     def filter_annotations(images_split):
+
+        """
+        Filters the annotations based on the image IDs present in the provided image split.
+
+        Args:
+            images_split (list): A list of images to filter annotations by.
+
+        Returns:
+            list: A list of annotations corresponding to the provided image IDs.
+        """
+
         image_ids = {img["id"] for img in images_split}
         return [ann for ann in combined_annotations if ann["image_id"] in image_ids]
 
@@ -66,8 +95,19 @@ def process_annotations(file_prefix):
     print("Validation annotations:", len(val_annotations))
     print("Test annotations:", len(test_annotations))
 
+
     # Save each split as a new JSON file
     def save_split(images_split, annotations_split, split_name):
+
+        """
+        Saves a specific image and annotation split (train, validation, or test) 
+        into a JSON file.
+
+        Args:
+            images_split (list): List of images in the split.
+            annotations_split (list): List of annotations for the images in the split.
+            split_name (str): Name of the split (e.g., 'train', 'val', or 'test').
+        """
         split_data = {
             "images": images_split,
             "annotations": annotations_split

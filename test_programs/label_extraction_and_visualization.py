@@ -1,7 +1,10 @@
 import pandas as pd
 import json
 import matplotlib.pyplot as plt
-
+"""
+This script processes a COCO-style JSON annotation file and extracts category labels and their frequencies. 
+It maps category IDs to category names and visualizes the distribution of object categories in the COCO training set.
+"""
 
 # Mapping of category IDs to category names for the COCO dataset
 category_mapping = {
@@ -26,6 +29,17 @@ category_mapping = {
 
 
 def extract_labels_from_instances(json_file_path):
+    """
+    Extracts category IDs and unique category names from a COCO JSON annotation file.
+    
+    Args:
+        json_file_path (str): Path to the COCO JSON annotation file containing object instance annotations.
+    
+    Returns:
+        tuple: A tuple containing:
+            - category_ids (list): A list of category IDs for all object instances.
+            - unique_labels (list): A list of unique object category names present in the dataset.
+    """
     # Load JSON data from the file
     with open(json_file_path, 'r') as f:
         data = json.load(f)
@@ -45,7 +59,7 @@ def extract_labels_from_instances(json_file_path):
     return category_ids, unique_labels
 
 
-json_file_path = '/home/rehan/Projects/Pytorch_Image_Classification/coco/annotations/annotations/instances_train2017.json'# Correct file path
+json_file_path = '/home/rehan/Projects/Pytorch_Image_Classification/coco/annotations/annotations/instances_train2017.json'
 category_ids, unique_labels = extract_labels_from_instances(json_file_path)
 
 # Convert category_ids to a DataFrame to easily count occurrences

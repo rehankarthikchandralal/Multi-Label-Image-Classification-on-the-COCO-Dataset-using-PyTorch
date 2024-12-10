@@ -5,6 +5,8 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
 import sys
+import matplotlib.pyplot as plt
+
 print(torch.cuda.is_available())
 sys.path.append(os.path.abspath('/home/rehan/Projects/Pytorch_Image_Classification/test_programs/task_2'))
 from create_data_loaders import train_loader, val_loader  # Import DataLoader objects
@@ -17,105 +19,91 @@ print(f"Device selected: {device}")
 class Convolutional_Neural_Network(nn.Module):
     def __init__(self):
         super(Convolutional_Neural_Network, self).__init__()
-        
-        # Convolutional Layer 1: 16 filters, 3x3 kernel, ReLU activation, padding=1, stride=1
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
         self.relu1 = nn.ReLU()
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max-Pooling
-        
-        # Convolutional Layer 2: 32 filters, 3x3 kernel, ReLU activation, padding=1, stride=1
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
         self.relu2 = nn.ReLU()
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max-Pooling
-        
-        # Convolutional Layer 3: 64 filters, 3x3 kernel, ReLU activation, padding=1, stride=1
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
         self.relu3 = nn.ReLU()
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max-Pooling
-        
-        # Fully-Connected Layer: 80 outputs
-        self.fc = nn.Linear(64 * 28 * 28, 80)  # 64 channels * 28x28 size after pooling
-        
-        # Output Layer: Sigmoid activation for binary classification
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.fc = nn.Linear(64 * 28 * 28, 80)
         self.sigmoid = nn.Sigmoid()
     
     def forward(self, x):
-        # Forward pass through the network
-        x = self.pool1(self.relu1(self.conv1(x)))  # Apply conv1 -> ReLU -> pool1
-        x = self.pool2(self.relu2(self.conv2(x)))  # Apply conv2 -> ReLU -> pool2
-        x = self.pool3(self.relu3(self.conv3(x)))  # Apply conv3 -> ReLU -> pool3
-        
-        # Flatten the output from convolutional layers to feed it into the fully connected layer
-        x = x.view(-1, 64 * 28 * 28)  # Flatten the output
-        
-        # Fully connected layer
+        x = self.pool1(self.relu1(self.conv1(x)))
+        x = self.pool2(self.relu2(self.conv2(x)))
+        x = self.pool3(self.relu3(self.conv3(x)))
+        x = x.view(-1, 64 * 28 * 28)
         x = self.fc(x)
-        
-        # Apply sigmoid activation to get the output
         x = self.sigmoid(x)
-        
         return x
 
-
-# Initialize the model and move it to the device (GPU/CPU)
 model = Convolutional_Neural_Network().to(device)
-print("Model initialized and moved to device.")
-
-# Set the model to training mode
 model.train()
 
-# Define a loss function and optimizer
-criterion = nn.BCELoss()  # Binary Cross-Entropy Loss
+criterion = nn.BCELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-print("Loss function and optimizer defined.")
 
-# Number of epochs to train
 num_epochs = 5
+train_losses = []
+val_losses = []
 
 print("Starting training...")
-# Training Loop
 for epoch in range(num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs} starting...")
-    running_loss = 0.0
+    running_train_loss = 0.0
+    running_val_loss = 0.0
     
-    # Loop through the training data
+    # Training Loop
+    model.train()
     for batch_idx, (images, filenames) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{num_epochs}"):
+        images = images.to(device)
+        labels = torch.zeros(images.size(0), 80).to(device)  # Dummy labels
         
-        # Move data to the appropriate device (GPU or CPU)
-        images = images.to(device)  # Move images to GPU/CPU
-        labels = torch.zeros(images.size(0), 80).to(device)  # Dummy labels (adjust based on your dataset)
-        
-        # Zero the parameter gradients
         optimizer.zero_grad()
-        
-        # Forward pass
         outputs = model(images)
-        
-        # Compute loss
         loss = criterion(outputs, labels)
-        
-        # Backward pass and optimize
         loss.backward()
         optimizer.step()
-        
-        # Accumulate the loss
-        running_loss += loss.item()
-        
-        # Print every 100 batches
-        if batch_idx % 100 == 99:
-            print(f"  Batch {batch_idx + 1}/{len(train_loader)} - Loss: {running_loss / 100:.4f}")
-            running_loss = 0.0
+        running_train_loss += loss.item()
     
-    print(f"Epoch {epoch + 1}/{num_epochs} completed - Average Loss: {running_loss / len(train_loader):.4f}")
+    avg_train_loss = running_train_loss / len(train_loader)
+    train_losses.append(avg_train_loss)
+    print(f"Epoch {epoch + 1}/{num_epochs} - Training Loss: {avg_train_loss:.4f}")
+    
+    # Validation Loop
+    model.eval()
+    with torch.no_grad():
+        for images, filenames in tqdm(val_loader, desc="Validation"):
+            images = images.to(device)
+            labels = torch.zeros(images.size(0), 80).to(device)  # Dummy labels
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            running_val_loss += loss.item()
+    
+    avg_val_loss = running_val_loss / len(val_loader)
+    val_losses.append(avg_val_loss)
+    print(f"Epoch {epoch + 1}/{num_epochs} - Validation Loss: {avg_val_loss:.4f}")
 
 print("Training completed.")
 
-# Create the directory to save the model
+# Plot the training and validation loss curves
+plt.figure(figsize=(10, 5))
+plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss", marker='o')
+plt.plot(range(1, num_epochs + 1), val_losses, label="Validation Loss", marker='o')
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.title("Training and Validation Loss Curves")
+plt.legend()
+plt.grid()
+plt.savefig("/home/rehan/Projects/Pytorch_Image_Classification/training_validation_loss.png")
+plt.show()
+
+# Save the model
 model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
 os.makedirs(model_save_dir, exist_ok=True)
-print(f"Model directory ensured at: {model_save_dir}")
-
-# Save the trained model
 model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')
 torch.save(model.state_dict(), model_save_path)
 print(f"Model saved as {model_save_path}")

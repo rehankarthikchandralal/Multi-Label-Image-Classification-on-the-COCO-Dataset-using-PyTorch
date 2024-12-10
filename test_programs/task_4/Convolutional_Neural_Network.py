@@ -4,6 +4,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import os
+import sys
+sys.path.append(os.path.abspath('/home/rehan/Projects/Pytorch_Image_Classification/test_programs/task_2'))
 from create_data_loaders import train_loader, val_loader  # Import DataLoader objects
 
 # Check for GPU availability

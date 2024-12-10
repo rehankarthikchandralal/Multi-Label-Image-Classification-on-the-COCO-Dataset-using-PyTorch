@@ -1,10 +1,15 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader
+from tqdm import tqdm  
+from torchvision import transforms
+sys.path.append(os.path.abspath('/home/rehan/Projects/Pytorch_Image_Classification'))
+from create_data_loaders import train_loader, val_loader  # Import DataLoader objects from the previous script
 
 class Convolutional_Neural_Network(nn.Module):
     def __init__(self):
-        super(SimpleCNN, self).__init__()
+        super(Convolutional_Neural_Network, self).__init__()
         
         # Convolutional Layer 1: 16 filters, 3x3 kernel, ReLU activation, padding=1, stride=1
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
@@ -43,3 +48,5 @@ class Convolutional_Neural_Network(nn.Module):
         x = self.sigmoid(x)
         
         return x
+
+

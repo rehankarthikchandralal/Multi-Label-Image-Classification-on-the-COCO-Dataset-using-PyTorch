@@ -2,9 +2,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from tqdm import tqdm  
-from torchvision import transforms
-from create_data_loaders import train_loader, val_loader  # Import DataLoader objects from task_2/create_data_loaders.py
+from tqdm import tqdm
+from create_data_loaders import train_loader, val_loader  # Import DataLoader objects
+
+# Check for GPU availability
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Convolutional_Neural_Network(nn.Module):
     def __init__(self):
@@ -49,3 +51,53 @@ class Convolutional_Neural_Network(nn.Module):
         return x
 
 
+# Initialize the model and move it to the device (GPU/CPU)
+model = Convolutional_Neural_Network().to(device)
+
+# Set the model to training mode
+model.train()
+
+# Define a loss function and optimizer
+criterion = nn.BCELoss()  # Binary Cross-Entropy Loss
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+# Number of epochs to train
+num_epochs = 5
+
+# Training Loop
+for epoch in range(num_epochs):
+    running_loss = 0.0
+    
+    # Loop through the training data
+    for batch_idx, (images, filenames) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{num_epochs}"):
+        
+        # Move data to the appropriate device (GPU or CPU)
+        images = images.to(device)  # Move images to GPU/CPU
+        labels = torch.zeros(images.size(0), 80).to(device)  # Dummy labels (adjust based on your dataset)
+        
+        # Zero the parameter gradients
+        optimizer.zero_grad()
+        
+        # Forward pass
+        outputs = model(images)
+        
+        # Compute loss
+        loss = criterion(outputs, labels)
+        
+        # Backward pass and optimize
+        loss.backward()
+        optimizer.step()
+        
+        # Accumulate the loss
+        running_loss += loss.item()
+        
+        # Print every 100 batches
+        if batch_idx % 100 == 99:
+            print(f"Batch {batch_idx + 1} - Loss: {running_loss / 100:.4f}")
+            running_loss = 0.0
+    
+    print(f"Epoch {epoch + 1} - Loss: {running_loss / len(train_loader):.4f}")
+
+# Save the trained model
+torch.save(model.state_dict(), 'cnn_model.pth')
+print("Model saved as cnn_model.pth")

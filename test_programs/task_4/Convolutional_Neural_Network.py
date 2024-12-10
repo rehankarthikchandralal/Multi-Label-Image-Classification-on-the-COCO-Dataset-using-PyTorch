@@ -4,8 +4,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm  
 from torchvision import transforms
-sys.path.append(os.path.abspath('/home/rehan/Projects/Pytorch_Image_Classification'))
-from create_data_loaders import train_loader, val_loader  # Import DataLoader objects from the previous script
+from create_data_loaders import train_loader, val_loader  # Import DataLoader objects from task_2/create_data_loaders.py
 
 class Convolutional_Neural_Network(nn.Module):
     def __init__(self):

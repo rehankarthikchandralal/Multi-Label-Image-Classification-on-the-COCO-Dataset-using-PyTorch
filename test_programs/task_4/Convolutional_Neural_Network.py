@@ -10,6 +10,7 @@ from create_data_loaders import train_loader, val_loader  # Import DataLoader ob
 
 # Check for GPU availability
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Device selected: {device}")
 
 class Convolutional_Neural_Network(nn.Module):
     def __init__(self):
@@ -56,6 +57,7 @@ class Convolutional_Neural_Network(nn.Module):
 
 # Initialize the model and move it to the device (GPU/CPU)
 model = Convolutional_Neural_Network().to(device)
+print("Model initialized and moved to device.")
 
 # Set the model to training mode
 model.train()
@@ -63,12 +65,15 @@ model.train()
 # Define a loss function and optimizer
 criterion = nn.BCELoss()  # Binary Cross-Entropy Loss
 optimizer = optim.Adam(model.parameters(), lr=0.001)
+print("Loss function and optimizer defined.")
 
 # Number of epochs to train
 num_epochs = 5
 
+print("Starting training...")
 # Training Loop
 for epoch in range(num_epochs):
+    print(f"Epoch {epoch + 1}/{num_epochs} starting...")
     running_loss = 0.0
     
     # Loop through the training data
@@ -96,14 +101,17 @@ for epoch in range(num_epochs):
         
         # Print every 100 batches
         if batch_idx % 100 == 99:
-            print(f"Batch {batch_idx + 1} - Loss: {running_loss / 100:.4f}")
+            print(f"  Batch {batch_idx + 1}/{len(train_loader)} - Loss: {running_loss / 100:.4f}")
             running_loss = 0.0
     
-    print(f"Epoch {epoch + 1} - Loss: {running_loss / len(train_loader):.4f}")
+    print(f"Epoch {epoch + 1}/{num_epochs} completed - Average Loss: {running_loss / len(train_loader):.4f}")
+
+print("Training completed.")
 
 # Create the directory to save the model
 model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
 os.makedirs(model_save_dir, exist_ok=True)
+print(f"Model directory ensured at: {model_save_dir}")
 
 # Save the trained model
 model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')

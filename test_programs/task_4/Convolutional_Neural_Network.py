@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import os
 from create_data_loaders import train_loader, val_loader  # Import DataLoader objects
 
 # Check for GPU availability
@@ -98,6 +99,11 @@ for epoch in range(num_epochs):
     
     print(f"Epoch {epoch + 1} - Loss: {running_loss / len(train_loader):.4f}")
 
+# Create the directory to save the model
+model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
+os.makedirs(model_save_dir, exist_ok=True)
+
 # Save the trained model
-torch.save(model.state_dict(), 'cnn_model.pth')
-print("Model saved as cnn_model.pth")
+model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')
+torch.save(model.state_dict(), model_save_path)
+print(f"Model saved as {model_save_path}")

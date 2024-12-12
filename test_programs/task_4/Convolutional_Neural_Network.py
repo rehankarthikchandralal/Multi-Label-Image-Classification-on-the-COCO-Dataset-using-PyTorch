@@ -46,9 +46,18 @@ model.train()
 criterion = nn.BCELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-num_epochs = 5
+num_epochs = 20
 train_losses = []
 val_losses = []
+
+# Directory to save models
+model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
+os.makedirs(model_save_dir, exist_ok=True)
+
+# File to log losses
+loss_log_file = os.path.join(model_save_dir, 'loss_log.txt')
+with open(loss_log_file, 'w') as log_file:
+    log_file.write("Epoch\tTraining Loss\tValidation Loss\n")
 
 print("Starting training...")
 for epoch in range(num_epochs):
@@ -87,6 +96,15 @@ for epoch in range(num_epochs):
     val_losses.append(avg_val_loss)
     print(f"Epoch {epoch + 1}/{num_epochs} - Validation Loss: {avg_val_loss:.4f}")
 
+    # Log losses to file
+    with open(loss_log_file, 'a') as log_file:
+        log_file.write(f"{epoch + 1}\t{avg_train_loss:.4f}\t{avg_val_loss:.4f}\n")
+
+    # Save model for the current epoch
+    model_save_path = os.path.join(model_save_dir, f'cnn_model_epoch_{epoch + 1}.pth')
+    torch.save(model.state_dict(), model_save_path)
+    print(f"Model saved for epoch {epoch + 1} at {model_save_path}")
+
 print("Training completed.")
 
 # Plot the training and validation loss curves
@@ -100,10 +118,3 @@ plt.legend()
 plt.grid()
 plt.savefig("/home/rehan/Projects/Pytorch_Image_Classification/training_validation_loss.png")
 plt.show()
-
-# Save the model
-model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
-os.makedirs(model_save_dir, exist_ok=True)
-model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')
-torch.save(model.state_dict(), model_save_path)
-print(f"Model saved as {model_save_path}")

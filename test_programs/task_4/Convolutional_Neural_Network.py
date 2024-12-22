@@ -51,7 +51,7 @@ train_losses = []
 val_losses = []
 
 # Directory to save models
-model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
+model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_models'
 os.makedirs(model_save_dir, exist_ok=True)
 
 # File to log losses

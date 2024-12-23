@@ -5,6 +5,7 @@
 
 import os
 import json
+import sys
 import logging
 
 #Libraries from PyTorch
@@ -25,7 +26,7 @@ from PIL import Image
 from collections import defaultdict
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score  # For evaluation metrics
-
+from tqdm import tqdm
 sys.path.append(os.path.abspath('/home/rehan/Projects/Pytorch_Image_Classification/test_programs/task_2'))
 from create_data_loaders import train_loader, val_loader  # Import DataLoader objects
 print("data loader is")
@@ -197,225 +198,131 @@ print("data loader is")
 
 # Check if CUDA (GPU support) is available and set the device accordingly
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-# Check if CUDA is available and output the result (True if a GPU is available, False otherwise)
-torch.cuda.is_available()
-
-
-# In[11]:
-
+logging.debug(f"Using device: {device}")
 
 # Define the OOP Model class inheriting from nn.Module
 class CustomMLP(nn.Module):
     def __init__(self):
-        super(CustomMLP, self).__init__()  # Call the parent class's constructor
+        super(CustomMLP, self).__init__()
+        logging.debug("Initializing CustomMLP model...")
 
-        #First Layer
-        self.fc1 = nn.Linear(224 * 224 *3 ,512) # Fully conected layer that takes 224*224*3Pixel input and maps it to 512 units.
-        #Second Layer
-        self.fc2 = nn.Linear(512,512) # Another fully conected layer that keeps the 512 units.
-        #Output layer
-        self.fc3 = nn.Linear(512,90) # Output layer that maps the 512 units to 80 units.
-
-        # Define the activation function - ReLU (Rectified Linear Unit) - Sigmoid
-        self.relu = nn.ReLU() # ReLU intriduces non-linearity after each layer
+        # First Layer
+        self.fc1 = nn.Linear(224 * 224 * 3 , 512)  # Fully connected layer
+        # Second Layer
+        self.fc2 = nn.Linear(512, 512)  # Another fully connected layer
+        # Output layer
+        self.fc3 = nn.Linear(512, 90)  # Output layer
+        
+        # Activation functions
+        self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
+        logging.debug("CustomMLP model initialized.")
 
-
-    # Define the forward pass (how data flows through the network)
+    # Define the forward pass
     def forward(self, x):
-        x = x.view(-1, 224 * 224 * 3) # Flatten the input tensor from 224*224*3 to 150528
+        logging.debug(f"Input shape: {x.shape}")
+        x = x.view(-1, 224 * 224 * 3)  # Flatten the input tensor
+        x = self.relu(self.fc1(x))  # Pass through the first layer
+        x = self.relu(self.fc2(x))  # Pass through the second layer
+        x = self.sigmoid(self.fc3(x))  # Pass through the output layer
+        logging.debug(f"Output shape: {x.shape}")
+        return x
 
-        x = F.relu(self.fc1(x)) # Pass data through the first layer and apply ReLU activation 
+# Instantiate the model and move it to the appropriate device
+oop_model = CustomMLP().to(device)
+logging.debug("Model moved to device.")
 
-        x = F.relu(self.fc2(x)) # Pass data through the second layer and apply ReLU activation
-
-        return self.sigmoid(self.fc3(x)) # Pass data through the output layer and apply Sigmoid activation
-
-
-# In[12]:
-
-
-# Instantiate the OOP model
-oop_model = CustomMLP().to(device)  # Move the model to the device (GPU/CPU)
-
-
-# In[13]:
-
-
-# Move model to GPU if available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-oop_model.to(device)
-
-
-# In[14]:
-
-
-# Define Loss function
+# Define the loss function and optimizer
 loss_fn = nn.CrossEntropyLoss()
-# Define Optimizer
 optimizer = optim.Adam(oop_model.parameters(), lr=0.001)
+logging.debug("Loss function and optimizer initialized.")
 
-
-# In[15]:
-
-
-# Modified training loop to return average training loss for each epoch
+# Training function
 def train_model(model, device, train_loader, optimizer, loss_fn):
-    model.train()  # Set the model to training mode (activates dropout and batch normalization)
-    running_loss = 0.0  # Initialize a variable to keep track of the cumulative loss for the epoch
+    model.train()
+    running_loss = 0.0
 
-    # Iterate over batches of data from the training set
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device (GPU/CPU)
+    # Use tqdm for showing progress in training
+    for batch_idx, (data, target) in enumerate(tqdm(train_loader, desc="Training", leave=False)):
+        data, target = data.to(device), target.to(device)
 
-        # Zero the gradients for the optimizer
-        optimizer.zero_grad()
+        optimizer.zero_grad()  # Zero gradients before backward pass
+        output = model(data)  # Forward pass
+        loss = loss_fn(output, target)  # Calculate loss
 
-        # Forward pass: compute predicted outputs by passing data through the model
-        output = model(data)
+        loss.backward()  # Backpropagate the loss
+        optimizer.step()  # Update model parameters
 
-        # Calculate the loss between the predicted outputs and the true labels
-        loss = loss_fn(output, target)
-        print("Loss:"+str(loss.item()))
-        # Backward pass: compute gradients of the loss with respect to model parameters
-        loss.backward()
+        running_loss += loss.item()  # Accumulate the loss
 
-        # Update the model weights based on the computed gradients
-        optimizer.step()
+        if batch_idx % 50 == 0:  # Log every 50 batches
+            logging.debug(f"Batch {batch_idx}/{len(train_loader)} - Loss: {loss.item():.4f}")
 
-        running_loss += loss.item()  # Accumulate the loss for the current batch
-
-    # Compute the average loss for the entire epoch
     avg_train_loss = running_loss / len(train_loader)
-    return avg_train_loss  # Return the average training loss for this epoch
-
-
-# In[16]:
-
-
-train_loss = train_model(oop_model, device, train_loader, optimizer, loss_fn)
-
-
-# In[1]:
-
+    logging.debug(f"Average training loss for this epoch: {avg_train_loss:.4f}")
+    return avg_train_loss
 
 # Validation function
 def validate_model(model, device, val_loader, loss_fn):
-    model.eval()  # Set the model to evaluation mode (disables dropout and batch normalization)
-    val_loss = 0.0  # Variable to accumulate validation loss
+    model.eval()
+    running_loss = 0.0
+    correct = 0
 
-    # Iterate over batches of data from the training set
-    for batch_idx, (data, target) in enumerate(val_loader):
-        data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device (GPU/CPU)
+    with torch.no_grad():  # No need for gradients in validation
+        for data, target in tqdm(val_loader, desc="Validation", leave=False):
+            data, target = data.to(device), target.to(device)
 
-        # Zero the gradients for the optimizer
-        optimizer.zero_grad()
+            output = model(data)  # Forward pass
+            loss = loss_fn(output, target)  # Calculate loss
+            running_loss += loss.item()
 
-        # Forward pass: compute predicted outputs by passing data through the model
-        output = model(data)
+            pred = output.argmax(dim=1, keepdim=True)  # Get predicted class
+            correct += pred.eq(target.view_as(pred)).sum().item()
 
-        # Calculate the loss between the predicted outputs and the true labels
-        val_loss = loss_fn(output, target)
-        print("Loss:"+str(val_loss.item()))
-
-        running_loss += val_loss.item()  # Accumulate the loss for the current batch
-
-    # Compute the average loss for the entire epoch
     avg_val_loss = running_loss / len(val_loader)
-    return avg_val_loss  # Return the average training loss for this epoch
+    accuracy = 100. * correct / len(val_loader.dataset)
+    logging.debug(f"Validation loss: {avg_val_loss:.4f}, Accuracy: {accuracy:.2f}%")
+    return avg_val_loss, accuracy
 
-
-# In[19]:
-
-
-# Testing function
-# def test_model(model, device, test_loader, loss_fn):
-#     model.eval()  # Set the model to evaluation mode (disables dropout and batch normalization)
-#     test_loss = 0.0  # Variable to accumulate total test loss
-#     correct = 0  # Counter for the number of correct predictions
-
-#     with torch.no_grad():  # Disable gradient computation during testing for efficiency
-#         for data, target in test_loader:  # Iterate over the test dataset
-#             data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device
-#             output = model(data)  # Forward pass: compute predicted outputs by passing data through the model
-#             test_loss += loss_fn(output, target).item()  # Accumulate test loss
-
-#             # Get predictions by finding the index of the maximum log-probability
-#             pred = output.argmax(dim=1, keepdim=True)  # Get the predicted class labels
-#             correct += pred.eq(target.view_as(pred)).sum().item()  # Count correct predictions
-
-#     # Compute average loss and accuracy for the test set
-#     test_loss /= len(test_loader)  # Average test loss
-#     accuracy = 100. * correct / len(test_loader.dataset)  # Accuracy as a percentage
-
-#     # Print test loss and accuracy
-#     print(f'Test Loss: {test_loss:.4f}, Accuracy: {correct}/{len(test_loader.dataset)} ({accuracy:.2f}%)')
-
-#     return test_loss, accuracy  # Return average test loss and accuracy
-
-
-# In[20]:
-
-
-# Training and validation loop with validation set
+# Training and evaluation loop
 def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_fn, epochs=5):
-    # Lists to store losses and accuracies
-    train_losses = []  # To track training losses over epochs
-    val_losses = []    # To track validation losses over epochs
-    val_accuracies = []  # To track validation accuracies over epochs
-    #test_losses = []   # To track test losses after training
-    #test_accuracies = []  # To track test accuracies after training
+    train_losses = []
+    val_losses = []
+    val_accuracies = []
 
-    # Loop over the number of epochs
     for epoch in range(epochs):
-        print(f"\nEpoch {epoch + 1}/{epochs}")
         logging.debug(f"\nEpoch {epoch + 1}/{epochs}")
+        logging.debug("-" * 50)
 
-        # Train the model and get training loss
-        train_loss = train_model(model, device, train_loader, optimizer, loss_fn)  # Call the training function
-        train_losses.append(train_loss)  # Store the training loss
+        # Training step
+        train_loss = train_model(model, device, train_loader, optimizer, loss_fn)
+        train_losses.append(train_loss)
 
-        # Validate the model and get validation loss and accuracy
-        val_loss, val_accuracy = validate_model(model, device, val_loader, loss_fn)  # Call the validation function
-        val_losses.append(val_loss)  # Store the validation loss
-        val_accuracies.append(val_accuracy)  # Store the validation accuracy
-
-        # Test the model and get test loss and accuracy (only for test set evaluation)
-        # test_loss, test_accuracy = test_model(model, device, test_loader, loss_fn)  # Call the testing function
-        # test_losses.append(test_loss)  # Store the test loss
-        # test_accuracies.append(test_accuracy)  # Store the test accuracy
-
-        # Print training and validation results for the current epoch
-        print(f"Training Loss: {train_loss:.4f}")
-        print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%")
-        #print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
+        # Validation step
+        val_loss, val_accuracy = validate_model(model, device, val_loader, loss_fn)
+        val_losses.append(val_loss)
+        val_accuracies.append(val_accuracy)
 
         logging.debug(f"Training Loss: {train_loss:.4f}")
         logging.debug(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%")
-        #logging.debug(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
 
-        torch.save(oop_model.state_dict(),"model_state_epoch_"+str(epoch)+".pt")
+        torch.save(model.state_dict(), f"model_state_epoch_{epoch}.pt")  # Save model state
 
-    # Return all recorded losses and accuracies for further analysis
-    return train_losses, val_losses, val_accuracies,  # Return results without test_loader
+    return train_losses, val_losses, val_accuracies
 
-
-# Example usage for 5 epochs (replace train_loader, val_loader, and test_loader with actual loaders)
-epochs = 5  # Set the number of epochs for training
-
+# Setup logging to capture detailed debug information
 logging.basicConfig(filename='train_validation_losses.log', level=logging.DEBUG)
 
-# Track training, validation, and test results
+# Example usage for 5 epochs
+epochs = 5
 train_losses, val_losses, val_accuracies = train_and_evaluate(
-    oop_model,  # The model to be trained and evaluated
-    device,  # The device (CPU or GPU) where the model will run
-    train_loader,  # DataLoader for training data
-    val_loader,  # DataLoader for validation data
-    #test_loader,  # DataLoader for test data (commented out)
-    optimizer,  # Optimizer to update model weights
-    loss_fn,  # Loss function to compute the loss
-    epochs=epochs  # Number of epochs to train for
+    oop_model,
+    device,
+    train_loader,
+    val_loader,
+    optimizer,
+    loss_fn,
+    epochs=epochs
 )
 
 # After training, you can analyze the recorded losses and accuracies

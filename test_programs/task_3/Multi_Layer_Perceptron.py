@@ -3,7 +3,6 @@
 
 # In[2]:
 
-
 import os
 import json
 import logging
@@ -19,7 +18,7 @@ from torchvision import datasets, models, transforms
 from torchvision.models import ResNet50_Weights
 
 #Libraries for data processing and visualization
-from matplotlib import pyplot as plt # For plotting graphs
+#from matplotlib import pyplot as plt # For plotting graphs
 import matplotlib.patches as patches # For bounding boxes
 import numpy as np # For numerical operations
 from PIL import Image
@@ -27,171 +26,173 @@ from collections import defaultdict
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score  # For evaluation metrics
 
-plt.rcParams['figure.figsize'] = (15, 15)
+sys.path.append(os.path.abspath('/home/rehan/Projects/Pytorch_Image_Classification/test_programs/task_2'))
+from create_data_loaders import train_loader, val_loader  # Import DataLoader objects
+print("data loader is")
 
 
 
-# In[2]:
+# # In[2]:
 
 
-image_ids_annotations = defaultdict(list)
+# image_ids_annotations = defaultdict(list)
 
-# Load annotations
-path = './annotations/instances_train2017.json'
-file = open(path)
-anns = json.load(file)
-image_ids = list()
+# # Load annotations
+# path = './annotations/instances_train2017.json'
+# file = open(path)
+# anns = json.load(file)
+# image_ids = list()
 
-# Add into datastructure
-for ann in anns['annotations']:
-    image_id = ann['image_id'] # Are integers
-    image_ids.append(image_id)
-    image_ids_annotations[image_id].append(ann)
-
-
-# In[3]:
+# # Add into datastructure
+# for ann in anns['annotations']:
+#     image_id = ann['image_id'] # Are integers
+#     image_ids.append(image_id)
+#     image_ids_annotations[image_id].append(ann)
 
 
-# Inicialization of the values per categorie  
-catergory_id_count = dict()
-for ann in anns['categories']:
-    catergory_id_count[ann['id']] = 0
-
-# Identification of the repetion per category 
-for ann in anns['annotations']:
-    category_id = ann['category_id']
-    catergory_id_count[category_id] += 1
-
-print(catergory_id_count)
+# # In[3]:
 
 
-# In[4]:
+# # Inicialization of the values per categorie  
+# catergory_id_count = dict()
+# for ann in anns['categories']:
+#     catergory_id_count[ann['id']] = 0
+
+# # Identification of the repetion per category 
+# for ann in anns['annotations']:
+#     category_id = ann['category_id']
+#     catergory_id_count[category_id] += 1
+
+# print(catergory_id_count)
 
 
-# Get mapping category_id to category name
-catergory_id_to_name = dict()
-for ann in anns['categories']:
-    catergory_id_to_name[ann['id']] = ann['name']
-
-print(catergory_id_to_name)
+# # In[4]:
 
 
-# In[5]:
+# # Get mapping category_id to category name
+# catergory_id_to_name = dict()
+# for ann in anns['categories']:
+#     catergory_id_to_name[ann['id']] = ann['name']
+
+# print(catergory_id_to_name)
 
 
-# Creation of the Histogram 
-values = list(catergory_id_count.values())
-names = list(catergory_id_to_name.values())
-
-fig = plt.figure(figsize = (10, 5))
-
-# creating the bar plot
-plt.bar(names, values, color ='maroon', 
-        width = 0.4)
-plt.xticks(rotation=90)
-
-print(values)
-print(names)
+# # In[5]:
 
 
-# In[6]:
+# # Creation of the Histogram 
+# values = list(catergory_id_count.values())
+# names = list(catergory_id_to_name.values())
+
+# fig = plt.figure(figsize = (10, 5))
+
+# # creating the bar plot
+# plt.bar(names, values, color ='maroon', 
+#         width = 0.4)
+# plt.xticks(rotation=90)
+
+# print(values)
+# print(names)
 
 
-# Dataset loader for COCO
-class COCOMultiLabelDataset(Dataset):
-    def __init__(self, img_dir, ann_file, image_ids, transform=None): # Initialize the dataset with the images directory, the annotation file and transformations
-        self.coco = ann_file # Load COCO annotations from the provided annotations file
-        self.img_dir = img_dir  # Directory containing the images
-        self.transform = transform  # Transformations (e.g. resizing, cropping, ...) to apply to each image
-        self.ids = image_ids  # Get a list of image IDs from the dataset
-
-    # Return the number of images in the dataset
-    def __len__(self): 
-        return len(self.ids)
-
-    # Get an image and its corresponding labels, based on an index
-    def __getitem__(self, index):
-        img_id = self.ids[index] # Get the image ID corresponding to the given index
-        path = "0" * (12 - len(str(img_id))) +str(img_id) + ".jpg"
-        img_path = os.path.join(self.img_dir, path) # Create the full path to the image
-
-        # Load the image using PIL and convert it to RGB format
-        img = Image.open(img_path).convert("RGB")
-        if self.transform is not None: # If transformation is given, apply it to the image
-            img = self.transform(img)
-
-        # Get multi-label annotations
-        anns = self.coco[img_id]
-        labels = torch.zeros(90)  # Initialize a tensor of zeros for multi label classification (80 different classes in COCO)
-
-        # Iterate through each annotation to set the corresponding labels
-        for ann in anns:
-            category_id = ann['category_id'] # Extract the category ID from the annotation
-            labels[category_id-1] = 1.0
-
-        return img, labels # Return the transformed image and its multi-label tensor
+# # In[6]:
 
 
-# In[7]:
+# # Dataset loader for COCO
+# class COCOMultiLabelDataset(Dataset):
+#     def __init__(self, img_dir, ann_file, image_ids, transform=None): # Initialize the dataset with the images directory, the annotation file and transformations
+#         self.coco = ann_file # Load COCO annotations from the provided annotations file
+#         self.img_dir = img_dir  # Directory containing the images
+#         self.transform = transform  # Transformations (e.g. resizing, cropping, ...) to apply to each image
+#         self.ids = image_ids  # Get a list of image IDs from the dataset
+
+#     # Return the number of images in the dataset
+#     def __len__(self): 
+#         return len(self.ids)
+
+#     # Get an image and its corresponding labels, based on an index
+#     def __getitem__(self, index):
+#         img_id = self.ids[index] # Get the image ID corresponding to the given index
+#         path = "0" * (12 - len(str(img_id))) +str(img_id) + ".jpg"
+#         img_path = os.path.join(self.img_dir, path) # Create the full path to the image
+
+#         # Load the image using PIL and convert it to RGB format
+#         img = Image.open(img_path).convert("RGB")
+#         if self.transform is not None: # If transformation is given, apply it to the image
+#             img = self.transform(img)
+
+#         # Get multi-label annotations
+#         anns = self.coco[img_id]
+#         labels = torch.zeros(90)  # Initialize a tensor of zeros for multi label classification (80 different classes in COCO)
+
+#         # Iterate through each annotation to set the corresponding labels
+#         for ann in anns:
+#             category_id = ann['category_id'] # Extract the category ID from the annotation
+#             labels[category_id-1] = 1.0
+
+#         return img, labels # Return the transformed image and its multi-label tensor
 
 
-# Resizing of Images and Normalization
-img_dir = './train2017'
-
-img_transforms = transforms.Compose([
-        transforms.Resize((224, 224)), # Resize Images to a size of 24*24 Pixels
-        transforms.ToTensor(), 
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]) # Normalization using standard values for RGB images
-    ])
-
-train_data = COCOMultiLabelDataset(img_dir=img_dir,
-                                   ann_file=image_ids_annotations,
-                                   transform=img_transforms,
-                                   image_ids=image_ids) 
+# # In[7]:
 
 
-# In[8]:
+# # Resizing of Images and Normalization
+# img_dir = './train2017'
+
+# img_transforms = transforms.Compose([
+#         transforms.Resize((224, 224)), # Resize Images to a size of 24*24 Pixels
+#         transforms.ToTensor(), 
+#         transforms.Normalize(mean=[0.485, 0.456, 0.406],
+#                              std=[0.229, 0.224, 0.225]) # Normalization using standard values for RGB images
+#     ])
+
+# train_data = COCOMultiLabelDataset(img_dir=img_dir,
+#                                    ann_file=image_ids_annotations,
+#                                    transform=img_transforms,
+#                                    image_ids=image_ids) 
 
 
-train_size = int(0.8 * len(train_data))  # 90% of the data will be used for training
-val_size = int(0.1 * len(train_data))  # 10% of the data  will be used for validation
-test_size = len(train_data) - train_size - val_size # Remaining data will be used for test
-
-train_data, val_data, test_data = random_split(train_data, [train_size, val_size, test_size]) # Divide dataset into training, validation and test splits. 
+# # In[8]:
 
 
-# In[9]:
+# train_size = int(0.8 * len(train_data))  # 90% of the data will be used for training
+# val_size = int(0.1 * len(train_data))  # 10% of the data  will be used for validation
+# test_size = len(train_data) - train_size - val_size # Remaining data will be used for test
+
+# train_data, val_data, test_data = random_split(train_data, [train_size, val_size, test_size]) # Divide dataset into training, validation and test splits. 
 
 
-# DataLoader for the training set
-train_loader = DataLoader(
-    train_data,  # The training dataset
-    batch_size=16,  # Number of samples per batch during training
-    shuffle=True  # Shuffle the data at the start of every epoch for better generalization
-)
-
-# DataLoader for the validation set
-val_loader = DataLoader(
-    val_data,  # The validation dataset
-    batch_size=16,  # Same batch size as training
-    shuffle=False  # No need to shuffle validation data
-)
-
-# DataLoader for the validation set
-test_loader = DataLoader(
-    test_data,  # The validation dataset
-    batch_size=16,  # Same batch size as training
-    shuffle=False  # No need to shuffle validation data
-)
-
-# Printing of the sizes of the datasets
-print(f"Training set size: {train_size}")
-print(f"Validation set size: {val_size}")
-print(f"Test set size: {len(test_data)}")
+# # In[9]:
 
 
-# In[10]:
+# # DataLoader for the training set
+# train_loader = DataLoader(
+#     train_data,  # The training dataset
+#     batch_size=16,  # Number of samples per batch during training
+#     shuffle=True  # Shuffle the data at the start of every epoch for better generalization
+# )
+
+# # DataLoader for the validation set
+# val_loader = DataLoader(
+#     val_data,  # The validation dataset
+#     batch_size=16,  # Same batch size as training
+#     shuffle=False  # No need to shuffle validation data
+# )
+
+# # DataLoader for the validation set
+# test_loader = DataLoader(
+#     test_data,  # The validation dataset
+#     batch_size=16,  # Same batch size as training
+#     shuffle=False  # No need to shuffle validation data
+# )
+
+# # Printing of the sizes of the datasets
+# print(f"Training set size: {train_size}")
+# print(f"Validation set size: {val_size}")
+# print(f"Test set size: {len(test_data)}")
+
+
+# # In[10]:
 
 
 # Check if CUDA (GPU support) is available and set the device accordingly
@@ -329,42 +330,42 @@ def validate_model(model, device, val_loader, loss_fn):
 
 
 # Testing function
-def test_model(model, device, test_loader, loss_fn):
-    model.eval()  # Set the model to evaluation mode (disables dropout and batch normalization)
-    test_loss = 0.0  # Variable to accumulate total test loss
-    correct = 0  # Counter for the number of correct predictions
+# def test_model(model, device, test_loader, loss_fn):
+#     model.eval()  # Set the model to evaluation mode (disables dropout and batch normalization)
+#     test_loss = 0.0  # Variable to accumulate total test loss
+#     correct = 0  # Counter for the number of correct predictions
 
-    with torch.no_grad():  # Disable gradient computation during testing for efficiency
-        for data, target in test_loader:  # Iterate over the test dataset
-            data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device
-            output = model(data)  # Forward pass: compute predicted outputs by passing data through the model
-            test_loss += loss_fn(output, target).item()  # Accumulate test loss
+#     with torch.no_grad():  # Disable gradient computation during testing for efficiency
+#         for data, target in test_loader:  # Iterate over the test dataset
+#             data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device
+#             output = model(data)  # Forward pass: compute predicted outputs by passing data through the model
+#             test_loss += loss_fn(output, target).item()  # Accumulate test loss
 
-            # Get predictions by finding the index of the maximum log-probability
-            pred = output.argmax(dim=1, keepdim=True)  # Get the predicted class labels
-            correct += pred.eq(target.view_as(pred)).sum().item()  # Count correct predictions
+#             # Get predictions by finding the index of the maximum log-probability
+#             pred = output.argmax(dim=1, keepdim=True)  # Get the predicted class labels
+#             correct += pred.eq(target.view_as(pred)).sum().item()  # Count correct predictions
 
-    # Compute average loss and accuracy for the test set
-    test_loss /= len(test_loader)  # Average test loss
-    accuracy = 100. * correct / len(test_loader.dataset)  # Accuracy as a percentage
+#     # Compute average loss and accuracy for the test set
+#     test_loss /= len(test_loader)  # Average test loss
+#     accuracy = 100. * correct / len(test_loader.dataset)  # Accuracy as a percentage
 
-    # Print test loss and accuracy
-    print(f'Test Loss: {test_loss:.4f}, Accuracy: {correct}/{len(test_loader.dataset)} ({accuracy:.2f}%)')
+#     # Print test loss and accuracy
+#     print(f'Test Loss: {test_loss:.4f}, Accuracy: {correct}/{len(test_loader.dataset)} ({accuracy:.2f}%)')
 
-    return test_loss, accuracy  # Return average test loss and accuracy
+#     return test_loss, accuracy  # Return average test loss and accuracy
 
 
 # In[20]:
 
 
 # Training and validation loop with validation set
-def train_and_evaluate(model, device, train_loader, val_loader, test_loader, optimizer, loss_fn, epochs=5):
+def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_fn, epochs=5):
     # Lists to store losses and accuracies
     train_losses = []  # To track training losses over epochs
     val_losses = []    # To track validation losses over epochs
     val_accuracies = []  # To track validation accuracies over epochs
-    test_losses = []   # To track test losses after training
-    test_accuracies = []  # To track test accuracies after training
+    #test_losses = []   # To track test losses after training
+    #test_accuracies = []  # To track test accuracies after training
 
     # Loop over the number of epochs
     for epoch in range(epochs):
@@ -381,51 +382,43 @@ def train_and_evaluate(model, device, train_loader, val_loader, test_loader, opt
         val_accuracies.append(val_accuracy)  # Store the validation accuracy
 
         # Test the model and get test loss and accuracy (only for test set evaluation)
-        test_loss, test_accuracy = test_model(model, device, test_loader, loss_fn)  # Call the testing function
-        test_losses.append(test_loss)  # Store the test loss
-        test_accuracies.append(test_accuracy)  # Store the test accuracy
+        # test_loss, test_accuracy = test_model(model, device, test_loader, loss_fn)  # Call the testing function
+        # test_losses.append(test_loss)  # Store the test loss
+        # test_accuracies.append(test_accuracy)  # Store the test accuracy
 
         # Print training and validation results for the current epoch
         print(f"Training Loss: {train_loss:.4f}")
         print(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%")
-        print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
+        #print(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
 
         logging.debug(f"Training Loss: {train_loss:.4f}")
         logging.debug(f"Validation Loss: {val_loss:.4f}, Validation Accuracy: {val_accuracy:.2f}%")
-        logging.debug(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
+        #logging.debug(f"Test Loss: {test_loss:.4f}, Test Accuracy: {test_accuracy:.2f}%")
 
         torch.save(oop_model.state_dict(),"model_state_epoch_"+str(epoch)+".pt")
 
     # Return all recorded losses and accuracies for further analysis
-    return train_losses, val_losses, val_accuracies, test_losses, test_accuracies
-
-
-# In[21]:
+    return train_losses, val_losses, val_accuracies,  # Return results without test_loader
 
 
 # Example usage for 5 epochs (replace train_loader, val_loader, and test_loader with actual loaders)
-epochs = 3  # Set the number of epochs for training
+epochs = 5  # Set the number of epochs for training
 
 logging.basicConfig(filename='train_validation_losses.log', level=logging.DEBUG)
 
-
-# In[22]:
-
-
 # Track training, validation, and test results
-train_losses, val_losses, val_accuracies, test_losses, test_accuracies = train_and_evaluate(
+train_losses, val_losses, val_accuracies = train_and_evaluate(
     oop_model,  # The model to be trained and evaluated
     device,  # The device (CPU or GPU) where the model will run
     train_loader,  # DataLoader for training data
     val_loader,  # DataLoader for validation data
-    test_loader,  # DataLoader for test data
+    #test_loader,  # DataLoader for test data (commented out)
     optimizer,  # Optimizer to update model weights
     loss_fn,  # Loss function to compute the loss
     epochs=epochs  # Number of epochs to train for
 )
 
 # After training, you can analyze the recorded losses and accuracies
-
 
 # In[59]:
 

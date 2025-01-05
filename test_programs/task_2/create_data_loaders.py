@@ -5,76 +5,102 @@ import torch
 from sklearn.model_selection import train_test_split
 from torchvision import transforms
 import json
+from tqdm import tqdm  # Importing tqdm for progress bars
 
-# Directory paths
-processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"  # Path to processed images directory
-json_file = "/path/to/annotations/train_annotations.json"  # Path to the JSON annotations file
+processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"
+json_file = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/instances_train.json"
 
-# Ensure the processed images directory exists
 if not os.path.exists(processed_images_dir):
     raise FileNotFoundError(f"Processed images directory not found: {processed_images_dir}")
 
-# Define a custom Dataset class that handles the images and labels
+if not os.path.exists(json_file):
+    raise FileNotFoundError(f"JSON annotations file not found: {json_file}")
+
 class ProcessedImagesDataset(Dataset):
     def __init__(self, images_dir, json_file, transform=None):
-        """
-        Args:
-            images_dir (str): Path to the directory containing processed images.
-            json_file (str): Path to the JSON annotations file.
-            transform (callable, optional): Optional transform to be applied on an image.
-        """
         self.images_dir = images_dir
         self.transform = transform
         
-        # Load annotations from the JSON file
-        with open(json_file, 'r') as f:
-            self.annotations = json.load(f)  # This assumes a list of annotations
-        self.image_filenames = [ann['image_name'] for ann in self.annotations]
-        self.image_labels = {ann['image_name']: ann['label'] for ann in self.annotations}  # Map filename to labels
+        try:
+            with open(json_file, 'r') as f:
+                self.annotations = json.load(f)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Error parsing JSON file: {json_file}. Error: {str(e)}")
         
+        if isinstance(self.annotations, dict):
+            if 'annotations' in self.annotations:
+                self.annotations = self.annotations['annotations']
+            else:
+                raise KeyError(f"Expected 'annotations' key not found in the JSON file: {json_file}")
+        
+        if not isinstance(self.annotations, list):
+            raise TypeError(f"Annotations should be a list, but got {type(self.annotations)}")
+        
+        self.image_filenames = []
+        self.image_labels = {}
+        
+        for ann in self.annotations:
+            image_id = ann.get('image_id', None)
+            category_id = ann.get('category_id', None)
+            
+            if image_id is None or category_id is None:
+                raise KeyError(f"Annotation missing 'image_id' or 'category_id': {ann}")
+            
+            image_filename = f"image_{image_id}.jpg"
+            
+            self.image_filenames.append(image_filename)
+            self.image_labels[image_filename] = category_id
+
     def __len__(self):
-        # Return the number of images
         return len(self.image_filenames)
     
     def __getitem__(self, idx):
-        # Get image filename
         img_name = self.image_filenames[idx]
         img_path = os.path.join(self.images_dir, img_name)
         
-        # Open the image
-        image = Image.open(img_path).convert('RGB')
+        if not os.path.exists(img_path):
+            print(f"Warning: Image file not found, skipping: {img_path}")  # Logging missing image
+            return None
         
-        # Get the label for this image
-        label = self.image_labels[img_name]
+        try:
+            image = Image.open(img_path).convert('RGB')
+        except Exception as e:
+            print(f"Error opening image {img_path}: {e}")
+            return None
         
-        # Apply transformations if any
+        label = self.image_labels.get(img_name, None)
+        if label is None:
+            print(f"Warning: Label not found for image {img_name}, skipping.")
+            return None
+        
         if self.transform:
             image = self.transform(image)
         
-        return image, label  # Return the image and its label
+        return image, label
 
-
-# Define transformations for converting to tensor and normalizing
 transform = transforms.Compose([
-    transforms.ToTensor(),  # Convert image to tensor
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize based on ImageNet stats
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# Create dataset object for the processed images with transformations
 dataset = ProcessedImagesDataset(images_dir=processed_images_dir, json_file=json_file, transform=transform)
 
-# Split dataset into train and validation sets (80% train, 20% validation)
 train_filenames, val_filenames = train_test_split(dataset.image_filenames, test_size=0.2, random_state=42)
 
-# Create DataLoader objects for train and validation datasets
 train_dataset = torch.utils.data.Subset(dataset, [dataset.image_filenames.index(f) for f in train_filenames])
 val_dataset = torch.utils.data.Subset(dataset, [dataset.image_filenames.index(f) for f in val_filenames])
 
-# Create DataLoader objects with batch size of 16
 train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
-# Print sample outputs to verify
-for batch_idx, (images, labels) in enumerate(train_loader):
+for batch_idx, (images, labels) in enumerate(tqdm(train_loader, desc="Training")):
+    if images is None or labels is None:
+        continue
     print(f"Batch {batch_idx+1} - Image Shape: {images.shape} - Labels: {labels}")
-    break  # Just show the first batch as a sample
+    break
+
+for batch_idx, (images, labels) in enumerate(tqdm(val_loader, desc="Validation")):
+    if images is None or labels is None:
+        continue
+    print(f"Batch {batch_idx+1} - Image Shape: {images.shape} - Labels: {labels}")
+    break

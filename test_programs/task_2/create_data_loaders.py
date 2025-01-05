@@ -4,46 +4,33 @@ from torch.utils.data import Dataset, DataLoader
 import torch
 from sklearn.model_selection import train_test_split
 from torchvision import transforms
-
-"""
-This script defines a custom Dataset for loading and processing images from a specified directory, 
-applies transformations including normalization, and creates DataLoader objects for training and 
-validation datasets.
-
-Functions:
-- A custom `ProcessedImagesDataset` class is defined to load images, apply transformations, 
-  and return images along with their filenames.
-- The dataset is split into training and validation sets (80%/20%) using `train_test_split`.
-- `DataLoader` objects are created for both the training and validation sets with a batch size of 16.
-
-Modules used:
-- os: For file handling
-- PIL (Pillow): For opening and processing images
-- torch.utils.data: For creating Dataset and DataLoader objects
-- sklearn.model_selection: For splitting the dataset into training and validation sets
-- torchvision.transforms: For applying image transformations (ToTensor, Normalize)
-"""
+import json
 
 # Directory paths
 processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"  # Path to processed images directory
+json_file = "/path/to/annotations/train_annotations.json"  # Path to the JSON annotations file
 
 # Ensure the processed images directory exists
 if not os.path.exists(processed_images_dir):
     raise FileNotFoundError(f"Processed images directory not found: {processed_images_dir}")
 
-# Define a custom Dataset class
+# Define a custom Dataset class that handles the images and labels
 class ProcessedImagesDataset(Dataset):
-    def __init__(self, images_dir, transform=None):
+    def __init__(self, images_dir, json_file, transform=None):
         """
         Args:
             images_dir (str): Path to the directory containing processed images.
+            json_file (str): Path to the JSON annotations file.
             transform (callable, optional): Optional transform to be applied on an image.
         """
         self.images_dir = images_dir
         self.transform = transform
         
-        # Get all image filenames from the directory
-        self.image_filenames = [f for f in os.listdir(images_dir) if f.lower().endswith('.jpg')]
+        # Load annotations from the JSON file
+        with open(json_file, 'r') as f:
+            self.annotations = json.load(f)  # This assumes a list of annotations
+        self.image_filenames = [ann['image_name'] for ann in self.annotations]
+        self.image_labels = {ann['image_name']: ann['label'] for ann in self.annotations}  # Map filename to labels
         
     def __len__(self):
         # Return the number of images
@@ -57,11 +44,14 @@ class ProcessedImagesDataset(Dataset):
         # Open the image
         image = Image.open(img_path).convert('RGB')
         
+        # Get the label for this image
+        label = self.image_labels[img_name]
+        
         # Apply transformations if any
         if self.transform:
             image = self.transform(image)
         
-        return image, img_name  # Return the image and its filename for reference
+        return image, label  # Return the image and its label
 
 
 # Define transformations for converting to tensor and normalizing
@@ -71,7 +61,7 @@ transform = transforms.Compose([
 ])
 
 # Create dataset object for the processed images with transformations
-dataset = ProcessedImagesDataset(images_dir=processed_images_dir, transform=transform)
+dataset = ProcessedImagesDataset(images_dir=processed_images_dir, json_file=json_file, transform=transform)
 
 # Split dataset into train and validation sets (80% train, 20% validation)
 train_filenames, val_filenames = train_test_split(dataset.image_filenames, test_size=0.2, random_state=42)
@@ -85,6 +75,6 @@ train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False)
 
 # Print sample outputs to verify
-for batch_idx, (images, filenames) in enumerate(train_loader):
-    print(f"Batch {batch_idx+1} - Image Shape: {images.shape} - Filenames: {filenames}")
+for batch_idx, (images, labels) in enumerate(train_loader):
+    print(f"Batch {batch_idx+1} - Image Shape: {images.shape} - Labels: {labels}")
     break  # Just show the first batch as a sample

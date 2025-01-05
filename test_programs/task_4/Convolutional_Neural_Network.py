@@ -58,9 +58,9 @@ for epoch in range(num_epochs):
     
     # Training Loop
     model.train()
-    for batch_idx, (images, filenames) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{num_epochs}"):
+    for batch_idx, (images, labels) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{num_epochs}"):
         images = images.to(device)
-        labels = torch.zeros(images.size(0), 80).to(device)  # Dummy labels
+        labels = labels.to(device)  # Get real labels from DataLoader
         
         optimizer.zero_grad()
         outputs = model(images)
@@ -76,9 +76,9 @@ for epoch in range(num_epochs):
     # Validation Loop
     model.eval()
     with torch.no_grad():
-        for images, filenames in tqdm(val_loader, desc="Validation"):
+        for images, labels in tqdm(val_loader, desc="Validation"):
             images = images.to(device)
-            labels = torch.zeros(images.size(0), 80).to(device)  # Dummy labels
+            labels = labels.to(device)  # Get real labels from DataLoader
             outputs = model(images)
             loss = criterion(outputs, labels)
             running_val_loss += loss.item()

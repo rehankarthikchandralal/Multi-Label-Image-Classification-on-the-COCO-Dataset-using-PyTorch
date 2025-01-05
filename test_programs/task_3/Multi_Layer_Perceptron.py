@@ -252,6 +252,9 @@ logging.debug("Loss function and optimizer initialized.")
 def train_model(model, device, train_loader, optimizer, loss_fn):
     model.train()  # Set the model to training mode (activates dropout and batch normalization)
     running_loss = 0.0  # Initialize a variable to keep track of the cumulative loss for the epoch
+    for batch_idx, (data, target) in enumerate(train_loader):
+        print(f"Data type: {type(data)}, Target type: {type(target)}")
+        break  # Only need to print the first batch to check
 
     # Iterate over batches of data from the training set
     for batch_idx, (data, target) in enumerate(train_loader):

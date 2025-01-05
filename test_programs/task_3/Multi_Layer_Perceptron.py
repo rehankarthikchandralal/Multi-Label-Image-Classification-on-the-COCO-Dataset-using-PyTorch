@@ -198,7 +198,18 @@ print("data loader is")
 
 # Check if CUDA (GPU support) is available and set the device accordingly
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-logging.debug(f"Using device: {device}")
+
+# Print the device being used
+print(f"CUDA Available: {torch.cuda.is_available()}")  # Check if CUDA is available
+print(f"Using device: {device}")  # Output which device (CPU or GPU) is being used
+
+# Check if CUDA is available and output the result (True if a GPU is available, False otherwise)
+cuda_available = torch.cuda.is_available()
+if cuda_available:
+    print(f"CUDA is available. Using GPU: {torch.cuda.get_device_name(0)}")
+else:
+    print("CUDA is not available. Using CPU.")
+
 
 # Define the OOP Model class inheriting from nn.Module
 class CustomMLP(nn.Module):
@@ -237,52 +248,63 @@ loss_fn = nn.CrossEntropyLoss()
 optimizer = optim.Adam(oop_model.parameters(), lr=0.001)
 logging.debug("Loss function and optimizer initialized.")
 
-# Training function
+# Modified training loop to return average training loss for each epoch
 def train_model(model, device, train_loader, optimizer, loss_fn):
-    model.train()
-    running_loss = 0.0
+    model.train()  # Set the model to training mode (activates dropout and batch normalization)
+    running_loss = 0.0  # Initialize a variable to keep track of the cumulative loss for the epoch
 
-    # Use tqdm for showing progress in training
-    for batch_idx, (data, target) in enumerate(tqdm(train_loader, desc="Training", leave=False)):
-        data, target = data.to(device), target.to(device)
+    # Iterate over batches of data from the training set
+    for batch_idx, (data, target) in enumerate(train_loader):
+        data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device (GPU/CPU)
 
-        optimizer.zero_grad()  # Zero gradients before backward pass
-        output = model(data)  # Forward pass
-        loss = loss_fn(output, target)  # Calculate loss
+        # Zero the gradients for the optimizer
+        optimizer.zero_grad()
 
-        loss.backward()  # Backpropagate the loss
-        optimizer.step()  # Update model parameters
+        # Forward pass: compute predicted outputs by passing data through the model
+        output = model(data)
 
-        running_loss += loss.item()  # Accumulate the loss
+        # Calculate the loss between the predicted outputs and the true labels
+        loss = loss_fn(output, target)
+        print("Loss:"+str(loss.item()))
+        # Backward pass: compute gradients of the loss with respect to model parameters
+        loss.backward()
 
-        if batch_idx % 50 == 0:  # Log every 50 batches
-            logging.debug(f"Batch {batch_idx}/{len(train_loader)} - Loss: {loss.item():.4f}")
+        # Update the model weights based on the computed gradients
+        optimizer.step()
 
+        running_loss += loss.item()  # Accumulate the loss for the current batch
+
+    # Compute the average loss for the entire epoch
     avg_train_loss = running_loss / len(train_loader)
-    logging.debug(f"Average training loss for this epoch: {avg_train_loss:.4f}")
-    return avg_train_loss
+    return avg_train_loss  # Return the average training loss for this epoch
+
+
 
 # Validation function
 def validate_model(model, device, val_loader, loss_fn):
-    model.eval()
-    running_loss = 0.0
-    correct = 0
+    model.eval()  # Set the model to evaluation mode (disables dropout and batch normalization)
+    val_loss = 0.0  # Variable to accumulate validation loss
 
-    with torch.no_grad():  # No need for gradients in validation
-        for data, target in tqdm(val_loader, desc="Validation", leave=False):
-            data, target = data.to(device), target.to(device)
+    # Iterate over batches of data from the training set
+    for batch_idx, (data, target) in enumerate(val_loader):
+        data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device (GPU/CPU)
 
-            output = model(data)  # Forward pass
-            loss = loss_fn(output, target)  # Calculate loss
-            running_loss += loss.item()
+        # Zero the gradients for the optimizer
+        optimizer.zero_grad()
 
-            pred = output.argmax(dim=1, keepdim=True)  # Get predicted class
-            correct += pred.eq(target.view_as(pred)).sum().item()
+        # Forward pass: compute predicted outputs by passing data through the model
+        output = model(data)
 
+        # Calculate the loss between the predicted outputs and the true labels
+        val_loss = loss_fn(output, target)
+        print("Loss:"+str(val_loss.item()))
+
+        running_loss += val_loss.item()  # Accumulate the loss for the current batch
+
+    # Compute the average loss for the entire epoch
     avg_val_loss = running_loss / len(val_loader)
-    accuracy = 100. * correct / len(val_loader.dataset)
-    logging.debug(f"Validation loss: {avg_val_loss:.4f}, Accuracy: {accuracy:.2f}%")
-    return avg_val_loss, accuracy
+    return avg_val_loss  # Return the average training loss for this epoch
+
 
 # Training and evaluation loop
 def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_fn, epochs=5):

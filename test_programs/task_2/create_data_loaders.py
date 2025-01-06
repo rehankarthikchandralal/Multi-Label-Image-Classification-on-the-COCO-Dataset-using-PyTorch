@@ -58,10 +58,12 @@ class ProcessedImagesDataset(Dataset):
                 continue  # Skip invalid annotations
 
             # Modify image filename to match the processed naming convention
-            image_filename = f"processed_image_{image_id}.jpg"  # Use the 'processed_' prefix
+            # Strip "image_" prefix and pad the ID with leading zeros to match the processed filenames
+            image_filename = f"{str(image_id).zfill(12)}.jpg"  # 12 digits padded for the processed images
             self.image_filenames.append(image_filename)
             self.image_labels[image_filename] = category_id
         print(f"Processed {len(self.image_filenames)} annotations.")
+
 
     def __len__(self):
         return len(self.image_filenames)
@@ -100,7 +102,6 @@ def custom_collate_fn(batch):
     return torch.utils.data._utils.collate.default_collate(batch)
 
 # Function to load or create splits
-# Function to load or create splits
 def get_splits(dataset, split_save_dir, test_size=0.2, random_state=42):
     train_split_file = os.path.join(split_save_dir, "train_split.npy")
     val_split_file = os.path.join(split_save_dir, "val_split.npy")
@@ -109,6 +110,10 @@ def get_splits(dataset, split_save_dir, test_size=0.2, random_state=42):
         print("Loading saved splits...")
         train_filenames = np.load(train_split_file, allow_pickle=True).tolist()
         val_filenames = np.load(val_split_file, allow_pickle=True).tolist()
+        # Debug: Print the first few filenames from both lists
+        print(f"First few train filenames: {train_filenames[:5]}")
+        print(f"First few image filenames: {image_filenames_array[:5]}")
+
         print("Splits loaded successfully.")
     else:
         print("Splits not found. Splitting dataset into training and validation sets...")
@@ -119,12 +124,7 @@ def get_splits(dataset, split_save_dir, test_size=0.2, random_state=42):
         np.save(val_split_file, val_filenames)
         print("Splits saved successfully.")
 
-    # Modify train and val filenames to match the processed image naming convention
-    train_filenames = [f"processed_{f}" for f in train_filenames]
-    val_filenames = [f"processed_{f}" for f in val_filenames]
-
     return train_filenames, val_filenames
-
 
 
 # Define transformations
@@ -138,13 +138,28 @@ if __name__ == "__main__":
     print("Creating dataset...")
     dataset = ProcessedImagesDataset(images_dir=processed_images_dir, json_file=json_file, transform=transform)
 
+    # Convert filenames to indices
+    image_filenames_array = np.array(dataset.image_filenames)
+    print("Train filenames:", dataset.image_filenames[:10])  # Print first 10 filenames for verification
+
     # Load or create splits
     train_filenames, val_filenames = get_splits(dataset, split_save_dir)
 
-    # Convert filenames to indices
-    image_filenames_array = np.array(dataset.image_filenames)
-    train_indices = [np.where(image_filenames_array == f)[0][0] for f in tqdm(train_filenames, desc="Finding train indices", unit="file")]
+    print("Validation filenames:", val_filenames[:10])  # Print first 10 filenames for verification
+
+    train_filenames = [
+        f"000000{str(int(f.split('_')[1].replace('.jpg', ''))).zfill(6)}.jpg" if 'image_' in f else f
+        for f in train_filenames
+    ]
+
+    val_filenames = [
+    f"000000{str(int(f.split('_')[1].replace('.jpg', ''))).zfill(6)}.jpg" if 'image_' in f else f
+    for f in val_filenames
+    ]
+    
     val_indices = [np.where(image_filenames_array == f)[0][0] for f in tqdm(val_filenames, desc="Finding validation indices", unit="file")]
+    train_indices = [np.where(image_filenames_array == f.strip().lower())[0][0] for f in tqdm(train_filenames, desc="Finding train indices", unit="file")]
+    
 
     # Create DataLoader instances
     train_dataset = torch.utils.data.Subset(dataset, train_indices)

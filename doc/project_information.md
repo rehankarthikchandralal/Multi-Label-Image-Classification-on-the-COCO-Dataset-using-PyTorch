@@ -149,3 +149,20 @@ Each category contains:
 
 The **COCO 2017 instances_train2017.json** file is structured to provide comprehensive object-level annotations, including image metadata, bounding box coordinates, object categories, and segmentation information. The format is designed to support multiple types of machine learning tasks, such as object detection, segmentation, and pose estimation.
 
+even if a Multilayer Perceptron (MLP) and a Convolutional Neural Network (CNN) use the same preprocessed dataset and dataloader object, the trained models will have significant differences in terms of their structure, how they process the data, and their performance on different tasks.
+Architecture Differences
+MLP: An MLP is a fully connected network where each neuron in one layer is connected to every neuron in the next layer. MLPs treat all input features equally, lacking spatial information about the input data.
+
+CNN: A CNN uses convolutional layers to detect local patterns and spatial hierarchies in the input data. CNNs are particularly effective for image data because they can capture spatial relationships between pixels.
+
+2. Feature Extraction
+MLP: Extracts features globally, treating each input feature independently. It doesn’t take spatial relationships into account, making it less effective for tasks involving structured data like images.
+
+CNN: Extracts features locally using convolutional kernels, capturing spatial and hierarchical patterns. This allows CNNs to recognize objects and textures in images effectively.
+
+Example Scenario
+Using the same preprocessed dataset and dataloader object (e.g., an image dataset):
+
+MLP might struggle to achieve high accuracy because it lacks the capability to capture the spatial structure of the images.
+
+CNN will likely perform better, leveraging its convolutional layers to extract meaningful features from the images.

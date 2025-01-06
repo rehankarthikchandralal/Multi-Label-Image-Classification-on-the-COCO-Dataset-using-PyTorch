@@ -1,45 +1,47 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from tqdm import tqdm
-import os
 import pickle
-import matplotlib.pyplot as plt
-import time
+import os
 import sys
+from tqdm import tqdm
+import matplotlib.pyplot as plt
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'task_2')))
-# Import custom dataset class
-from create_data_loaders import ProcessedImagesDataset  # Ensure this path is correct
-
-# Paths
-data_loader_save_dir = "/home/rehan/Projects/Pytorch_Image_Classification/dataloaders"
-model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
-os.makedirs(model_save_dir, exist_ok=True)
+sys.path.append(os.path.join(os.path.dirname(__file__), '../task_2'))
+# Make sure to import ProcessedImagesDataset from the correct module
+from create_data_loaders import ProcessedImagesDataset
+from create_data_loaders import custom_collate_fn
 
 print("Starting script execution...")
 
-# Step 1: Load DataLoaders
-print("Loading DataLoaders...")
-start_time = time.time()
-try:
-    with open(os.path.join(data_loader_save_dir, "train_loader.pkl"), "rb") as f:
-        train_loader = pickle.load(f)
-    print("Train DataLoader loaded successfully.")
+# Use the absolute path to the pickle files as previously defined
+train_loader_path = '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/train_loader.pkl'
+val_loader_path = '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/val_loader.pkl'
 
-    with open(os.path.join(data_loader_save_dir, "val_loader.pkl"), "rb") as f:
-        val_loader = pickle.load(f)
-    print("Validation DataLoader loaded successfully.")
-except Exception as e:
-    raise RuntimeError(f"Failed to load DataLoader objects: {str(e)}")
-print(f"DataLoaders loaded in {time.time() - start_time:.2f} seconds.")
+train_loader = None
+val_loader = None
 
-# Step 2: Check for GPU availability
+if os.path.exists(train_loader_path) and os.path.exists(val_loader_path):
+    print("Loading saved DataLoader objects from pickle files...")
+    try:
+        with open(train_loader_path, 'rb') as f:
+            train_loader = pickle.load(f)
+        with open(val_loader_path, 'rb') as f:
+            val_loader = pickle.load(f)
+        print("DataLoader objects loaded successfully.")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load DataLoader objects: {str(e)}")
+else:
+    print("Saved DataLoader files not found. Proceeding with dataset creation...")
+
+# Check if the DataLoader objects are loaded successfully
+if not train_loader or not val_loader:
+    raise RuntimeError("Failed to load train_loader or val_loader.")
+
+# Check for GPU availability
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"CUDA Available: {torch.cuda.is_available()}")
 print(f"Device selected: {device}")
 
-# Step 3: Define CNN Model
 class Convolutional_Neural_Network(nn.Module):
     def __init__(self):
         super(Convolutional_Neural_Network, self).__init__()
@@ -65,13 +67,11 @@ class Convolutional_Neural_Network(nn.Module):
         return x
 
 model = Convolutional_Neural_Network().to(device)
-print("Model initialized.")
+model.train()
 
-# Step 4: Define Loss Function and Optimizer
 criterion = nn.BCELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# Step 5: Training Loop
 num_epochs = 5
 train_losses = []
 val_losses = []
@@ -84,9 +84,12 @@ for epoch in range(num_epochs):
     
     # Training Loop
     model.train()
-    for batch_idx, (images, labels) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{num_epochs} - Training"):
+    for batch_idx, (images, labels) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{num_epochs}"):
+        if images is None or labels is None:  # Skip invalid data
+            continue
+
         images = images.to(device)
-        labels = labels.to(device)
+        labels = labels.to(device)  # Get real labels from DataLoader
         
         optimizer.zero_grad()
         outputs = model(images)
@@ -102,9 +105,12 @@ for epoch in range(num_epochs):
     # Validation Loop
     model.eval()
     with torch.no_grad():
-        for images, labels in tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs} - Validation", total=len(val_loader)):
+        for batch_idx, (images, labels) in tqdm(enumerate(val_loader), desc="Validation"):
+            if images is None or labels is None:  # Skip invalid data
+                continue
+
             images = images.to(device)
-            labels = labels.to(device)
+            labels = labels.to(device)  # Get real labels from DataLoader
             outputs = model(images)
             loss = criterion(outputs, labels)
             running_val_loss += loss.item()
@@ -115,8 +121,7 @@ for epoch in range(num_epochs):
 
 print("Training completed.")
 
-# Step 6: Plot Loss Curves
-print("Saving loss curves...")
+# Plot the training and validation loss curves
 plt.figure(figsize=(10, 5))
 plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss", marker='o')
 plt.plot(range(1, num_epochs + 1), val_losses, label="Validation Loss", marker='o')
@@ -125,12 +130,12 @@ plt.ylabel("Loss")
 plt.title("Training and Validation Loss Curves")
 plt.legend()
 plt.grid()
-loss_plot_path = os.path.join(model_save_dir, "training_validation_loss.png")
-plt.savefig(loss_plot_path)
-print(f"Loss curves saved at {loss_plot_path}.")
+plt.savefig("/home/rehan/Projects/Pytorch_Image_Classification/training_validation_loss.png")
 plt.show()
 
-# Step 7: Save the Trained Model
+# Save the model
+model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
+os.makedirs(model_save_dir, exist_ok=True)
 model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')
 torch.save(model.state_dict(), model_save_path)
-print(f"Model saved at {model_save_path}.")
+print(f"Model saved as {model_save_path}")

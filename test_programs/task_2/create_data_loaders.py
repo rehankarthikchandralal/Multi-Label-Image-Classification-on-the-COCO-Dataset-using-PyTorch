@@ -13,7 +13,9 @@ import pickle
 processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"
 json_file = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/instances_train.json"
 split_save_dir = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/splits"
+
 data_loader_save_dir = "/home/rehan/Projects/Pytorch_Image_Classification/dataloaders"
+
 
 # Ensure directories and files exist
 if not os.path.exists(processed_images_dir):
@@ -24,6 +26,7 @@ if not os.path.exists(json_file):
 
 os.makedirs(split_save_dir, exist_ok=True)
 os.makedirs(data_loader_save_dir, exist_ok=True)
+
 
 print("Loaded configuration successfully.")
 
@@ -144,6 +147,7 @@ val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False, collate_fn=cu
 
 print("Data loaders created successfully.")
 
+
 # Save DataLoader objects
 with open(os.path.join(data_loader_save_dir, "train_loader.pkl"), "wb") as f:
     pickle.dump(train_loader, f)
@@ -152,3 +156,18 @@ with open(os.path.join(data_loader_save_dir, "val_loader.pkl"), "wb") as f:
     pickle.dump(val_loader, f)
 
 print(f"Data loaders saved to {data_loader_save_dir}")
+
+# Load and process data
+def process_data(loader, desc):
+    total_batches = len(loader)
+    for batch_idx, (images, labels) in enumerate(tqdm(loader, desc=desc, total=total_batches, ncols=100)):
+        if images is None or labels is None:
+            continue
+        print(f"Batch {batch_idx+1}/{total_batches} - Image Shape: {images.shape} - Labels: {labels}")
+        break  # Only process the first batch to keep it fast
+
+process_data(train_loader, "Training")
+process_data(val_loader, "Validation")
+
+print("Program completed.")
+

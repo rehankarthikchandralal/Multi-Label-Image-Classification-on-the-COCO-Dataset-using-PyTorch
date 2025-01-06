@@ -13,9 +13,7 @@ import pickle
 processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"
 json_file = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/instances_train.json"
 split_save_dir = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/splits"
-
 data_loader_save_dir = "/home/rehan/Projects/Pytorch_Image_Classification/dataloaders"
-
 
 # Ensure directories and files exist
 if not os.path.exists(processed_images_dir):
@@ -26,7 +24,6 @@ if not os.path.exists(json_file):
 
 os.makedirs(split_save_dir, exist_ok=True)
 os.makedirs(data_loader_save_dir, exist_ok=True)
-
 
 print("Loaded configuration successfully.")
 
@@ -60,7 +57,8 @@ class ProcessedImagesDataset(Dataset):
             if image_id is None or category_id is None:
                 continue  # Skip invalid annotations
 
-            image_filename = f"image_{image_id}.jpg"
+            # Modify image filename to match the processed naming convention
+            image_filename = f"processed_image_{image_id}.jpg"  # Use the 'processed_' prefix
             self.image_filenames.append(image_filename)
             self.image_labels[image_filename] = category_id
         print(f"Processed {len(self.image_filenames)} annotations.")
@@ -92,6 +90,7 @@ class ProcessedImagesDataset(Dataset):
 
         return image, label
 
+
 # Custom collate function to handle None values
 def custom_collate_fn(batch):
     # Filter out None values
@@ -100,6 +99,7 @@ def custom_collate_fn(batch):
         return None, None
     return torch.utils.data._utils.collate.default_collate(batch)
 
+# Function to load or create splits
 # Function to load or create splits
 def get_splits(dataset, split_save_dir, test_size=0.2, random_state=42):
     train_split_file = os.path.join(split_save_dir, "train_split.npy")
@@ -119,7 +119,13 @@ def get_splits(dataset, split_save_dir, test_size=0.2, random_state=42):
         np.save(val_split_file, val_filenames)
         print("Splits saved successfully.")
 
+    # Modify train and val filenames to match the processed image naming convention
+    train_filenames = [f"processed_{f}" for f in train_filenames]
+    val_filenames = [f"processed_{f}" for f in val_filenames]
+
     return train_filenames, val_filenames
+
+
 
 # Define transformations
 transform = transforms.Compose([
@@ -127,47 +133,47 @@ transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-print("Creating dataset...")
-dataset = ProcessedImagesDataset(images_dir=processed_images_dir, json_file=json_file, transform=transform)
+# The main execution block wrapped in `if __name__ == "__main__":`
+if __name__ == "__main__":
+    print("Creating dataset...")
+    dataset = ProcessedImagesDataset(images_dir=processed_images_dir, json_file=json_file, transform=transform)
 
-# Load or create splits
-train_filenames, val_filenames = get_splits(dataset, split_save_dir)
+    # Load or create splits
+    train_filenames, val_filenames = get_splits(dataset, split_save_dir)
 
-# Convert filenames to indices
-image_filenames_array = np.array(dataset.image_filenames)
-train_indices = [np.where(image_filenames_array == f)[0][0] for f in tqdm(train_filenames, desc="Finding train indices", unit="file")]
-val_indices = [np.where(image_filenames_array == f)[0][0] for f in tqdm(val_filenames, desc="Finding validation indices", unit="file")]
+    # Convert filenames to indices
+    image_filenames_array = np.array(dataset.image_filenames)
+    train_indices = [np.where(image_filenames_array == f)[0][0] for f in tqdm(train_filenames, desc="Finding train indices", unit="file")]
+    val_indices = [np.where(image_filenames_array == f)[0][0] for f in tqdm(val_filenames, desc="Finding validation indices", unit="file")]
 
-# Create DataLoader instances
-train_dataset = torch.utils.data.Subset(dataset, train_indices)
-val_dataset = torch.utils.data.Subset(dataset, val_indices)
+    # Create DataLoader instances
+    train_dataset = torch.utils.data.Subset(dataset, train_indices)
+    val_dataset = torch.utils.data.Subset(dataset, val_indices)
 
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, collate_fn=custom_collate_fn)
-val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False, collate_fn=custom_collate_fn)
+    train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, collate_fn=custom_collate_fn)
+    val_loader = DataLoader(val_dataset, batch_size=16, shuffle=False, collate_fn=custom_collate_fn)
 
-print("Data loaders created successfully.")
+    print("Data loaders created successfully.")
 
+    # Save DataLoader objects
+    with open(os.path.join(data_loader_save_dir, "train_loader.pkl"), "wb") as f:
+        pickle.dump(train_loader, f)
 
-# Save DataLoader objects
-with open(os.path.join(data_loader_save_dir, "train_loader.pkl"), "wb") as f:
-    pickle.dump(train_loader, f)
+    with open(os.path.join(data_loader_save_dir, "val_loader.pkl"), "wb") as f:
+        pickle.dump(val_loader, f)
 
-with open(os.path.join(data_loader_save_dir, "val_loader.pkl"), "wb") as f:
-    pickle.dump(val_loader, f)
+    print(f"Data loaders saved to {data_loader_save_dir}")
 
-print(f"Data loaders saved to {data_loader_save_dir}")
+    # Load and process data
+    def process_data(loader, desc):
+        total_batches = len(loader)
+        for batch_idx, (images, labels) in enumerate(tqdm(loader, desc=desc, total=total_batches, ncols=100)):
+            if images is None or labels is None:
+                continue
+            print(f"Batch {batch_idx+1}/{total_batches} - Image Shape: {images.shape} - Labels: {labels}")
+            break  # Only process the first batch to keep it fast
 
-# Load and process data
-def process_data(loader, desc):
-    total_batches = len(loader)
-    for batch_idx, (images, labels) in enumerate(tqdm(loader, desc=desc, total=total_batches, ncols=100)):
-        if images is None or labels is None:
-            continue
-        print(f"Batch {batch_idx+1}/{total_batches} - Image Shape: {images.shape} - Labels: {labels}")
-        break  # Only process the first batch to keep it fast
+    process_data(train_loader, "Training")
+    process_data(val_loader, "Validation")
 
-process_data(train_loader, "Training")
-process_data(val_loader, "Validation")
-
-print("Program completed.")
-
+    print("Program completed.")

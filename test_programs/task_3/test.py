@@ -1,166 +1,190 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-import torch  # PyTorch's core library for building and training deep learning models
-import torch.nn as nn  # Import the neural network module from PyTorch
-import torch.optim as optim  # Import optimization algorithms such as Adam
-import torch.nn.functional as F  # Import functional utilities like activation functions
-from torch.utils.data import Dataset, DataLoader  # DataLoader for batching
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torch.nn.functional as F
+import pickle
 import logging
+import os
+import sys
+from tqdm import tqdm  # For the progress bar
+import torch.nn.functional as F
+import csv  # For saving losses in CSV format
+import matplotlib.pyplot as plt  # For plotting loss curves
+# Add the correct path for your create_data_loaders module
+sys.path.append(os.path.join(os.path.dirname(__file__), '../task_2'))
 
-# In[2]:
+from create_data_loaders import ProcessedImagesDataset
+from create_data_loaders import custom_collate_fn
 
-# Define the MLP Model
+print("Starting script execution...")
+
+train_loader_path = '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/train_loader.pkl'
+val_loader_path = '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/val_loader.pkl'
+
 class CustomMLP(nn.Module):
     def __init__(self):
-        super(CustomMLP, self).__init__()  # Call the parent class's constructor
+        super(CustomMLP, self).__init__()
 
-        # First Layer
-        self.fc1 = nn.Linear(224 * 224 * 3, 512)  # Fully connected layer that takes 224*224*3 Pixel input and maps it to 512 units.
-        # Second Layer
-        self.fc2 = nn.Linear(512, 512)  # Another fully connected layer that keeps the 512 units.
-        # Output layer
-        self.fc3 = nn.Linear(512, 90)  # Output layer that maps the 512 units to 90 output units (assuming 90 classes)
+        self.fc1 = nn.Linear(224 * 224 * 3, 512)
+        self.fc2 = nn.Linear(512, 512)
+        self.fc3 = nn.Linear(512, 90)
 
-        # Define the activation function - ReLU (Rectified Linear Unit) - Sigmoid
-        self.relu = nn.ReLU()  # ReLU introduces non-linearity after each layer
-        self.sigmoid = nn.Sigmoid()  # Sigmoid for multi-label classification
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
-    # Define the forward pass (how data flows through the network)
     def forward(self, x):
-        x = x.view(-1, 224 * 224 * 3)  # Flatten the input tensor from 224*224*3 to 150528
-
-        x = F.relu(self.fc1(x))  # Pass data through the first layer and apply ReLU activation
-        x = F.relu(self.fc2(x))  # Pass data through the second layer and apply ReLU activation
-
-        return self.sigmoid(self.fc3(x))  # Pass data through the output layer and apply Sigmoid activation
+        x = x.view(-1, 224 * 224 * 3)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        return self.sigmoid(self.fc3(x))
 
 
-# In[3]:
-
-# Instantiate the MLP model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-mlp_model = CustomMLP().to(device)  # Move the model to the device (GPU/CPU)
+mlp_model = CustomMLP().to(device)
 
-# In[4]:
-
-# Define Loss function
-loss_fn = nn.BCELoss()  # Binary Cross-Entropy Loss for multi-label classification
-# Define Optimizer
+loss_fn = nn.BCELoss()
 optimizer = optim.Adam(mlp_model.parameters(), lr=0.001)
 
 
-# In[5]:
+def load_dataloaders(train_loader_path, val_loader_path):
+    with open(train_loader_path, 'rb') as f_train, open(val_loader_path, 'rb') as f_val:
+        train_loader = pickle.load(f_train)
+        val_loader = pickle.load(f_val)
+    return train_loader, val_loader
 
-# Training function
+
+# Inside train_model and validate_model functions
+def filter_invalid_labels(data, target):
+    # Filter out invalid labels (labels < 0 or labels >= 80)
+    valid_mask = (target >= 0) & (target < 80)  # Boolean mask for valid labels
+    data = data[valid_mask]  # Filter images
+    target = target[valid_mask]  # Filter labels
+    return data, target
+
 def train_model(model, device, train_loader, optimizer, loss_fn):
-    model.train()  # Set the model to training mode
-    running_loss = 0.0  # Initialize a variable to keep track of the cumulative loss for the epoch
+    model.train()
+    running_loss = 0.0
 
-    # Iterate over batches of data from the training set
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device
+    for batch_idx, (data, target) in enumerate(tqdm(train_loader, desc="Training", unit="batch")):
+        data, target = data.to(device), target.to(device)
 
-        # Zero the gradients for the optimizer
+        # Filter invalid labels before training
+        data, target = filter_invalid_labels(data, target)
+
+        # If the target is not already one-hot encoded, convert it to one-hot
+        if target.dim() == 1:  # Target is a 1D vector of labels, not one-hot encoded
+            target = F.one_hot(target, num_classes=90).float()  # Convert to one-hot and cast to float
+
         optimizer.zero_grad()
-
-        # Forward pass: compute predicted outputs by passing data through the model
         output = model(data)
-
-        # Calculate the loss between the predicted outputs and the true labels
         loss = loss_fn(output, target)
-        print("Loss:" + str(loss.item()))
 
-        # Backward pass: compute gradients of the loss with respect to model parameters
         loss.backward()
-
-        # Update the model weights based on the computed gradients
         optimizer.step()
 
-        running_loss += loss.item()  # Accumulate the loss for the current batch
+        running_loss += loss.item()
 
-    # Compute the average loss for the entire epoch
     avg_train_loss = running_loss / len(train_loader)
-    return avg_train_loss  # Return the average training loss for this epoch
+    return avg_train_loss
 
 
-# In[6]:
-
-# Validation function
 def validate_model(model, device, val_loader, loss_fn):
-    model.eval()  # Set the model to evaluation mode (disables dropout and batch normalization)
-    val_loss = 0.0  # Variable to accumulate validation loss
+    model.eval()
+    val_loss = 0.0
 
-    # Iterate over batches of data from the validation set
-    for batch_idx, (data, target) in enumerate(val_loader):
-        data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device
+    for batch_idx, (data, target) in enumerate(tqdm(val_loader, desc="Validation", unit="batch")):
+        data, target = data.to(device), target.to(device)
 
-        # Forward pass: compute predicted outputs by passing data through the model
+        # Filter invalid labels before validation
+        data, target = filter_invalid_labels(data, target)
+
+        # If the target is not already one-hot encoded, convert it to one-hot
+        if target.dim() == 1:  # Target is a 1D vector of labels, not one-hot encoded
+            target = F.one_hot(target, num_classes=90).float()  # Convert to one-hot and cast to float
+
         output = model(data)
+        loss = loss_fn(output, target)
 
-        # Calculate the loss between the predicted outputs and the true labels
-        val_loss = loss_fn(output, target)
-        print("Loss:" + str(val_loss.item()))
+        val_loss += loss.item()
 
-        val_loss += val_loss.item()  # Accumulate the loss for the current batch
-
-    # Compute the average loss for the entire validation set
     avg_val_loss = val_loss / len(val_loader)
-    return avg_val_loss  # Return the average validation loss
+    return avg_val_loss
 
 
-# In[7]:
-
-# Training and evaluation loop
 def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_fn, epochs=5):
-    # Lists to store losses and accuracies
-    train_losses = []  # To track training losses over epochs
-    val_losses = []    # To track validation losses over epochs
-    val_accuracies = []  # To track validation accuracies over epochs
+    train_losses = []
+    val_losses = []
 
-    # Loop over the number of epochs
-    for epoch in range(epochs):
-        print(f"\nEpoch {epoch + 1}/{epochs}")
-        logging.debug(f"\nEpoch {epoch + 1}/{epochs}")
+    # Open CSV file to write losses to
+    with open('train_validation_losses.csv', 'w', newline='') as csvfile:
+        fieldnames = ['Epoch', 'Training Loss', 'Validation Loss']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        
+        # Write header row
+        writer.writeheader()
 
-        # Train the model and get training loss
-        train_loss = train_model(model, device, train_loader, optimizer, loss_fn)  # Call the training function
-        train_losses.append(train_loss)  # Store the training loss
+        for epoch in range(epochs):
+            print(f"\nEpoch {epoch + 1}/{epochs}")
+            logging.debug(f"\nEpoch {epoch + 1}/{epochs}")
 
-        # Validate the model and get validation loss
-        val_loss = validate_model(model, device, val_loader, loss_fn)  # Call the validation function
-        val_losses.append(val_loss)  # Store the validation loss
+            train_loss = train_model(model, device, train_loader, optimizer, loss_fn)
+            train_losses.append(train_loss)
 
-        # Print training and validation results for the current epoch
-        print(f"Training Loss: {train_loss:.4f}")
-        print(f"Validation Loss: {val_loss:.4f}")
+            val_loss = validate_model(model, device, val_loader, loss_fn)
+            val_losses.append(val_loss)
 
-        logging.debug(f"Training Loss: {train_loss:.4f}")
-        logging.debug(f"Validation Loss: {val_loss:.4f}")
+            print(f"Training Loss: {train_loss:.4f}")
+            print(f"Validation Loss: {val_loss:.4f}")
 
-        torch.save(model.state_dict(), f"model_state_epoch_{epoch}.pt")
+            logging.debug(f"Training Loss: {train_loss:.4f}")
+            logging.debug(f"Validation Loss: {val_loss:.4f}")
+
+            # Save the model's state_dict
+            torch.save(model.state_dict(), f"model_state_epoch_{epoch}.pt")
+
+            # Write the losses to the CSV file
+            writer.writerow({'Epoch': epoch + 1, 'Training Loss': train_loss, 'Validation Loss': val_loss})
+
+            # Save the model after each epoch
+            torch.save(model.state_dict(), f"model_state_epoch_{epoch}.pt")
 
     return train_losses, val_losses
 
 
-# In[8]:
+def plot_loss_curve(train_losses, val_losses):
+    # Plot the training and validation loss curves
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, len(train_losses) + 1), train_losses, label='Training Loss')
+    plt.plot(range(1, len(val_losses) + 1), val_losses, label='Validation Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training and Validation Loss')
+    plt.legend()
+    plt.grid(True)
+    plt.savefig('loss_curve.png')  # Save the plot as an image
+    plt.show()
 
-# Example usage for training (replace train_loader and val_loader with actual loaders)
-epochs = 5  # Set the number of epochs for training
 
+epochs = 5 
 logging.basicConfig(filename='train_validation_losses.log', level=logging.DEBUG)
 
-# Track training and validation results
-train_losses, val_losses = train_and_evaluate(
-    mlp_model,  # The model to be trained and evaluated
-    device,  # The device (CPU or GPU) where the model will run
-    train_loader,  # DataLoader for training data
-    val_loader,  # DataLoader for validation data
-    optimizer,  # Optimizer to update model weights
-    loss_fn,  # Loss function to compute the loss
-    epochs=epochs  # Number of epochs to train for
+train_loader, val_loader = load_dataloaders(
+    '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/train_loader.pkl',
+    '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/val_loader.pkl'
 )
 
-# After training, you can analyze the recorded losses and accuracies
+train_losses, val_losses = train_and_evaluate(
+    mlp_model,
+    device,
+    train_loader,
+    val_loader,
+    optimizer,
+    loss_fn,
+    epochs=epochs
+)
+
+# After training, plot the loss curves
+plot_loss_curve(train_losses, val_losses)

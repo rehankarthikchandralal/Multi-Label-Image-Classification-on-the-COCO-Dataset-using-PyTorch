@@ -80,7 +80,7 @@ criterion = torch.nn.CrossEntropyLoss()  # For multi-class classification
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Set number of epochs
-num_epochs = 1
+num_epochs = 5
 train_losses = []
 val_losses = []
 
@@ -159,7 +159,6 @@ model.eval()
 running_val_loss = 0
 with torch.no_grad():
     for batch_idx, (images, labels) in tqdm(enumerate(val_loader), desc="Validation"):
-
         # Filter out invalid labels (labels < 0 or labels >= 80)
         valid_mask = (labels >= 0) & (labels < 80)  # Boolean mask for valid labels
         images = images[valid_mask]  # Filter images
@@ -186,12 +185,19 @@ with torch.no_grad():
         loss = criterion(outputs, labels)
         running_val_loss += loss.item()
 
-avg_val_loss = running_val_loss / len(val_loader)
-val_losses.append(avg_val_loss)
-print(f"Epoch {epoch + 1}/{num_epochs} - Validation Loss: {avg_val_loss:.4f}")
+    avg_val_loss = running_val_loss / len(val_loader)
+    val_losses.append(avg_val_loss)  # Ensure this is added for each epoch
+    print(f"Epoch {epoch + 1}/{num_epochs} - Validation Loss: {avg_val_loss:.4f}")
+
 
 
 print(f"Training completed with {missing_files_count} missing files.")
+# Save the trained model
+model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
+os.makedirs(model_save_dir, exist_ok=True)
+model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')
+torch.save(model.state_dict(), model_save_path)
+print(f"Model saved as {model_save_path}")
 
 # Plot the training and validation loss curves
 plt.figure(figsize=(10, 5))
@@ -205,9 +211,3 @@ plt.grid()
 plt.savefig("/home/rehan/Projects/Pytorch_Image_Classification/training_validation_loss.png")
 plt.show()
 
-# Save the trained model
-model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
-os.makedirs(model_save_dir, exist_ok=True)
-model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')
-torch.save(model.state_dict(), model_save_path)
-print(f"Model saved as {model_save_path}")

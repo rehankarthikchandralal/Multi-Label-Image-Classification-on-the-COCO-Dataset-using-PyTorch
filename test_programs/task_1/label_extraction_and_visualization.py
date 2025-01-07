@@ -1,12 +1,23 @@
-import pandas as pd
+import os
+from PIL import Image
+from torchvision import transforms
+import torch
 import json
-import matplotlib.pyplot as plt
-"""
-This script processes a COCO-style JSON annotation file and extracts category labels and their frequencies. 
-It maps category IDs to category names and visualizes the distribution of object categories in the COCO training set.
-"""
 
-# Mapping of category IDs to category names for the COCO dataset
+# Directory paths
+input_dir = "/home/rehan/Projects/Pytorch_Image_Classification/coco/images/train2017"  # Path to images directory
+output_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"      # Path where processed images will be saved
+instances_test_file = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/instances_test.json"  # Path to test annotations JSON file
+
+# Ensure the output directory exists
+os.makedirs(output_dir, exist_ok=True)
+
+# Load the instances_test.json to get valid image ids
+with open(instances_test_file, 'r') as f:
+    test_data = json.load(f)
+
+# Create a set of valid image IDs from the annotations
+valid_image_ids = set()
 category_mapping = {
     1: "person", 2: "bicycle", 3: "car", 4: "motorcycle", 5: "airplane", 
     6: "bus", 7: "train", 8: "truck", 9: "boat", 10: "traffic light", 
@@ -27,54 +38,65 @@ category_mapping = {
     80: "toothbrush"
 }
 
+# Populate the valid_image_ids set with the image IDs that have valid labels
+for ann in test_data['annotations']:
+    if ann['category_id'] in category_mapping:
+        valid_image_ids.add(str(ann['image_id']).zfill(12))  # Make sure image_id matches the image file name format
 
-def extract_labels_from_instances(json_file_path):
-    """
-    Extracts category IDs and unique category names from a COCO JSON annotation file.
+# Function to Apply Resizing, Normalizing, and Augmenting All in One Step
+def process_image(image):
+    # Define the transformation pipeline (resize, normalize, augment)
+    transform = transforms.Compose([
+        transforms.RandomResizedCrop(224),    # Random crop to 224x224
+        transforms.RandomHorizontalFlip(),    # Random horizontal flip
+        transforms.RandomRotation(30),        # Random rotation between -30 and 30 degrees
+        transforms.ToTensor(),                # Convert image to tensor
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize based on ImageNet stats
+    ])
     
-    Args:
-        json_file_path (str): Path to the COCO JSON annotation file containing object instance annotations.
-    
-    Returns:
-        tuple: A tuple containing:
-            - category_ids (list): A list of category IDs for all object instances.
-            - unique_labels (list): A list of unique object category names present in the dataset.
-    """
-    # Load JSON data from the file
-    with open(json_file_path, 'r') as f:
-        data = json.load(f)
-    
-    # Extract annotations from the data
-    annotations = data.get('annotations', [])
-    
-    # Extract category_ids from annotations
-    category_ids = [annotation['category_id'] for annotation in annotations]
-    
-    # Remove duplicates by converting the list to a set
-    unique_category_ids = set(category_ids)
-    
-    # Map category_id to category names using the mapping
-    unique_labels = [category_mapping[cat_id] for cat_id in unique_category_ids if cat_id in category_mapping]
-    
-    return category_ids, unique_labels
+    # Apply transformations to the image
+    return transform(image)
 
+# Track the number of processed images, errors, and invalid images
+total_images = len([f for f in os.listdir(input_dir) if f.lower().endswith('.jpg')])  # Count all .jpg images
+processed_count = 0
+error_count = 0
+invalid_count = 0  # Count of invalid images
 
-json_file_path = '/home/rehan/Projects/Pytorch_Image_Classification/coco/annotations/annotations/instances_train2017.json'
-category_ids, unique_labels = extract_labels_from_instances(json_file_path)
+# Process all images in the input directory
+for idx, image_name in enumerate(os.listdir(input_dir)):
+    image_path = os.path.join(input_dir, image_name)
+    
+    # Check if the file is a .jpg image
+    _, extension = os.path.splitext(image_name)
+    if extension.lower() == '.jpg':  # Check if the extension is exactly '.jpg'
+        try:
+            # Check if the image is in the valid_image_ids set
+            image_id = image_name.split('.')[0]
+            if image_id not in valid_image_ids:
+                invalid_count += 1
+                continue  # Skip processing this image if it's not valid
 
-# Convert category_ids to a DataFrame to easily count occurrences
-category_counts = pd.Series(category_ids).value_counts().sort_index()
+            # Open the image
+            image = Image.open(image_path)
 
-# Print the number of different labels
-print(f"Number of different labels: {len(unique_labels)}")
+            # Process the image with resizing, normalizing, and augmenting
+            processed_image = process_image(image)
 
-#  Visualize label distribution (histogram)
-plt.figure(figsize=(12, 6))
-category_counts.plot(kind='bar', color='green')
-plt.title('Distribution of Object Categories in COCO Training Set')
-plt.xlabel('Category')
-plt.ylabel('Frequency')
-plt.xticks(ticks=range(len(category_counts)), labels=category_counts.index.map(category_mapping), rotation=90)
-plt.tight_layout()
-plt.show()
-#plt.savefig('/home/rehan/Projects/Pytorch_Image_Classification/doc/unique_labels.png') 
+            # Convert the processed tensor back to a PIL image for saving
+            processed_image_pil = transforms.ToPILImage()(processed_image)
+
+            # Save the processed image with its original name in the output directory
+            processed_image_pil.save(os.path.join(output_dir, image_name))
+            processed_count += 1
+
+        except Exception as e:
+            error_count += 1
+            print(f"Error processing {image_name}: {e}")
+
+    # Print progress every 100 images
+    if (idx + 1) % 100 == 0 or (idx + 1) == total_images:
+        print(f"Processed {idx + 1}/{total_images} images... ({processed_count} successfully processed, {error_count} errors, {invalid_count} invalid images)")
+
+# Final summary
+print(f"\nProcessing complete. {processed_count} images processed successfully, {error_count} errors, {invalid_count} invalid images skipped.")

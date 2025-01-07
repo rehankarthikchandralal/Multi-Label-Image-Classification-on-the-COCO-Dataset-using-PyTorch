@@ -73,14 +73,34 @@ class Convolutional_Neural_Network(nn.Module):
 
 # Initialize the CNN model
 model = Convolutional_Neural_Network().to(device)
-model.train()
 
 # Define loss function and optimizer
 criterion = torch.nn.CrossEntropyLoss()  # For multi-class classification
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+# Paths for saving and loading model, optimizer, and epoch
+model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
+os.makedirs(model_save_dir, exist_ok=True)
+model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')
+optimizer_save_path = os.path.join(model_save_dir, 'optimizer.pth')
+epoch_save_path = os.path.join(model_save_dir, 'epoch.txt')
+
+# Load previously trained model, optimizer, and epoch if available
+start_epoch = 0
+if os.path.exists(model_save_path):
+    print("Loading saved model...")
+    model.load_state_dict(torch.load(model_save_path))
+    if os.path.exists(optimizer_save_path):
+        print("Loading saved optimizer state...")
+        optimizer.load_state_dict(torch.load(optimizer_save_path))
+    if os.path.exists(epoch_save_path):
+        print("Loading last saved epoch...")
+        with open(epoch_save_path, 'r') as f:
+            start_epoch = int(f.read().strip())
+    print(f"Resuming training from epoch {start_epoch + 1}")
+
 # Set number of epochs
-num_epochs = 5
+num_epochs = 3
 train_losses = []
 val_losses = []
 
@@ -88,58 +108,24 @@ val_losses = []
 print(f"Number of training batches: {len(train_loader)}")
 print(f"Number of validation batches: {len(val_loader)}")
 
-# Initialize counter for missing files
-missing_files_count = 0
-
 # Start training process
-# Training Loop
-# Training Loop
-# Training Loop
 print("Starting training...")
-for epoch in range(num_epochs):
+for epoch in range(start_epoch, num_epochs):
     print(f"Epoch {epoch + 1}/{num_epochs} starting...")
 
     # Training Loop
     model.train()
     running_train_loss = 0
     for batch_idx, (images, labels) in tqdm(enumerate(train_loader), total=len(train_loader), desc=f"Epoch {epoch+1}/{num_epochs}"):
+        valid_mask = (labels >= 0) & (labels < 80)  # Filter out invalid labels
+        images = images[valid_mask]
+        labels = labels[valid_mask]
 
-        # Filter out invalid labels (labels < 0 or labels >= 80)
-        valid_mask = (labels >= 0) & (labels < 80)  # Boolean mask for valid labels
-        images = images[valid_mask]  # Filter images
-        labels = labels[valid_mask]  # Filter labels
-
-        # Skip if there are no valid samples in the batch
-        if len(images) == 0 or len(labels) == 0:
-            print(f"Batch {batch_idx} has no valid samples. Skipping this batch.")
+        if len(images) == 0 or len(labels) == 0:  # Skip invalid batches
             continue
 
-        # Move images and labels to the same device as the model (GPU)
         images = images.to(device)
         labels = labels.to(device)
-
-        # Ensure batch size matches
-        if images.size(0) != labels.size(0):
-            print(f"Skipping batch {batch_idx} due to size mismatch: images ({images.size(0)}), labels ({labels.size(0)})")
-            continue
-
-        # Pad the last batch if necessary
-        if images.size(0) < 16:
-            padding_size = 16 - images.size(0)
-
-            # Pad the image tensor
-            images = torch.cat([images, images.new_zeros(padding_size, *images.shape[1:])], dim=0)
-
-            # Pad the label tensor
-            labels = torch.cat([labels, labels.new_zeros(padding_size)], dim=0)
-
-        # Check for NaN or Inf values
-        if torch.isnan(images).any() or torch.isinf(images).any():
-            print(f"Found NaN or Inf in images at batch {batch_idx}")
-            continue
-        if torch.isnan(labels).any() or torch.isinf(labels).any():
-            print(f"Found NaN or Inf in labels at batch {batch_idx}")
-            continue
 
         optimizer.zero_grad()
         outputs = model(images)
@@ -152,57 +138,39 @@ for epoch in range(num_epochs):
     train_losses.append(avg_train_loss)
     print(f"Epoch {epoch + 1}/{num_epochs} - Training Loss: {avg_train_loss:.4f}")
 
+    # Save model, optimizer, and epoch
+    torch.save(model.state_dict(), model_save_path)
+    torch.save(optimizer.state_dict(), optimizer_save_path)
+    with open(epoch_save_path, 'w') as f:
+        f.write(str(epoch + 1))
 
+    # Validation Loop
+    model.eval()
+    running_val_loss = 0
+    with torch.no_grad():
+        for batch_idx, (images, labels) in tqdm(enumerate(val_loader), desc="Validation"):
+            valid_mask = (labels >= 0) & (labels < 80)
+            images = images[valid_mask]
+            labels = labels[valid_mask]
 
-# Validation Loop
-model.eval()
-running_val_loss = 0
-with torch.no_grad():
-    for batch_idx, (images, labels) in tqdm(enumerate(val_loader), desc="Validation"):
-        # Filter out invalid labels (labels < 0 or labels >= 80)
-        valid_mask = (labels >= 0) & (labels < 80)  # Boolean mask for valid labels
-        images = images[valid_mask]  # Filter images
-        labels = labels[valid_mask]  # Filter labels
+            if len(images) == 0 or len(labels) == 0:
+                continue
 
-        # Skip if there are no valid samples in the batch
-        if len(images) == 0 or len(labels) == 0:
-            print(f"Batch {batch_idx} has no valid samples. Skipping this batch.")
-            continue
+            images = images.to(device)
+            labels = labels.to(device)
 
-        # Move images and labels to the same device as the model (GPU)
-        images = images.to(device)
-        labels = labels.to(device)
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            running_val_loss += loss.item()
 
-        # Check for NaN or infinite values
-        if torch.isnan(images).any() or torch.isinf(images).any():
-            print(f"Found NaN or Inf in images at batch {batch_idx}")
-            continue
-        if torch.isnan(labels).any() or torch.isinf(labels).any():
-            print(f"Found NaN or Inf in labels at batch {batch_idx}")
-            continue
-
-        outputs = model(images)
-        loss = criterion(outputs, labels)
-        running_val_loss += loss.item()
-
-    avg_val_loss = running_val_loss / len(val_loader)
-    val_losses.append(avg_val_loss)  # Ensure this is added for each epoch
-    print(f"Epoch {epoch + 1}/{num_epochs} - Validation Loss: {avg_val_loss:.4f}")
-
-
-
-print(f"Training completed with {missing_files_count} missing files.")
-# Save the trained model
-model_save_dir = '/home/rehan/Projects/Pytorch_Image_Classification/trained_model'
-os.makedirs(model_save_dir, exist_ok=True)
-model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')
-torch.save(model.state_dict(), model_save_path)
-print(f"Model saved as {model_save_path}")
+        avg_val_loss = running_val_loss / len(val_loader)
+        val_losses.append(avg_val_loss)
+        print(f"Epoch {epoch + 1}/{num_epochs} - Validation Loss: {avg_val_loss:.4f}")
 
 # Plot the training and validation loss curves
 plt.figure(figsize=(10, 5))
-plt.plot(range(1, num_epochs + 1), train_losses, label="Training Loss", marker='o')
-plt.plot(range(1, num_epochs + 1), val_losses, label="Validation Loss", marker='o')
+plt.plot(range(1, len(train_losses) + 1), train_losses, label="Training Loss", marker='o')
+plt.plot(range(1, len(val_losses) + 1), val_losses, label="Validation Loss", marker='o')
 plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.title("Training and Validation Loss Curves")
@@ -210,4 +178,3 @@ plt.legend()
 plt.grid()
 plt.savefig("/home/rehan/Projects/Pytorch_Image_Classification/training_validation_loss.png")
 plt.show()
-

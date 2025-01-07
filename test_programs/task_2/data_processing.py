@@ -1,52 +1,73 @@
+import json
 import os
 from PIL import Image
 from torchvision import transforms
-import torch
+from tqdm import tqdm  # Import tqdm for progress bar
 
-# Directory paths
+# Paths to directories and annotation files
 input_dir = "/home/rehan/Projects/Pytorch_Image_Classification/coco/images/train2017"  # Path to images directory
 output_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"      # Path where processed images will be saved
+annotations_dir = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets"  # Path to annotations directory
 
 # Ensure the output directory exists
 os.makedirs(output_dir, exist_ok=True)
 
 # Function to Apply Resizing, Normalizing, and Augmenting All in One Step
 def process_image(image):
-    # Define the transformation pipeline (resize, normalize, augment)
     transform = transforms.Compose([
-        transforms.RandomResizedCrop(224),    # Random crop to 224x224
-        transforms.RandomHorizontalFlip(),    # Random horizontal flip
-        transforms.RandomRotation(30),        # Random rotation between -30 and 30 degrees
-        transforms.ToTensor(),                # Convert image to tensor
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # Normalize based on ImageNet stats
+        transforms.RandomResizedCrop(224),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(30),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
-    
-    # Apply transformations to the image
     return transform(image)
 
-# Track the number of processed images and errors
-total_images = len([f for f in os.listdir(input_dir) if f.lower().endswith('.jpg')])  # Count all .jpg images
+# Track the number of processed images, errors, and skipped images
 processed_count = 0
 error_count = 0
+skipped_count = 0
 
-# Process all images in the input directory
-for idx, image_name in enumerate(os.listdir(input_dir)):
+# Load the list of image IDs from the instances JSON files (train, val, test)
+def load_image_ids(split_file):
+    with open(split_file, 'r') as f:
+        data = json.load(f)
+    return {img["id"] for img in data["images"]}
+
+# Load image IDs from train, val, and test JSON files
+train_image_ids = load_image_ids(os.path.join(annotations_dir, "instances_train.json"))
+val_image_ids = load_image_ids(os.path.join(annotations_dir, "instances_val.json"))
+test_image_ids = load_image_ids(os.path.join(annotations_dir, "instances_test.json"))
+
+# Combine all the image IDs that should be processed
+valid_image_ids = train_image_ids.union(val_image_ids, test_image_ids)
+
+# Get the total number of images to process
+total_images = len([image_name for image_name in os.listdir(input_dir) if image_name.lower().endswith('.jpg')])
+
+# Iterate over all images in the directory with a progress bar
+for image_name in tqdm(os.listdir(input_dir), total=total_images, desc="Processing Images"):
     image_path = os.path.join(input_dir, image_name)
     
-    # Check if the file is a .jpg image
+    # Ensure it's a .jpg file
     _, extension = os.path.splitext(image_name)
-    if extension.lower() == '.jpg':  # Check if the extension is exactly '.jpg'
+    if extension.lower() == '.jpg':
         try:
+            image_id = int(image_name.split('.')[0])  # Get the image ID by removing the extension and converting to int
+            
+            # Skip image if it is not part of the valid image IDs
+            if image_id not in valid_image_ids:
+                skipped_count += 1
+                continue
+
             # Open the image
             image = Image.open(image_path)
 
-            # Process the image with resizing, normalizing, and augmenting
+            # Process the image (resize, normalize, augment)
             processed_image = process_image(image)
 
-            # Convert the processed tensor back to a PIL image for saving
+            # Save the processed image
             processed_image_pil = transforms.ToPILImage()(processed_image)
-
-            # Save the processed image with its original name in the output directory
             processed_image_pil.save(os.path.join(output_dir, image_name))
             processed_count += 1
 
@@ -54,9 +75,5 @@ for idx, image_name in enumerate(os.listdir(input_dir)):
             error_count += 1
             print(f"Error processing {image_name}: {e}")
 
-    # Print progress every 100 images
-    if (idx + 1) % 100 == 0 or (idx + 1) == total_images:
-        print(f"Processed {idx + 1}/{total_images} images... ({processed_count} successfully processed, {error_count} errors)")
-
 # Final summary
-print(f"\nProcessing complete. {processed_count} images processed successfully, {error_count} errors occurred.")
+print(f"\nProcessing complete. {processed_count} images processed successfully, {error_count} errors, {skipped_count} images skipped (not part of the train/val/test splits).")

@@ -86,7 +86,7 @@ optimizer_save_path = os.path.join(model_save_dir, 'optimizer.pth')
 epoch_save_path = os.path.join(model_save_dir, 'epoch.txt')
 
 # Load previously trained model, optimizer, and epoch if available
-start_epoch = 0
+start_epoch = 3
 if os.path.exists(model_save_path):
     print("Loading saved model...")
     model.load_state_dict(torch.load(model_save_path))
@@ -100,7 +100,7 @@ if os.path.exists(model_save_path):
     print(f"Resuming training from epoch {start_epoch + 1}")
 
 # Set number of epochs
-num_epochs = 3
+num_epochs = 10
 train_losses = []
 val_losses = []
 

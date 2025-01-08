@@ -45,7 +45,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 mlp_model = CustomMLP().to(device)
 
 loss_fn = nn.BCELoss()
-optimizer = optim.Adam(mlp_model.parameters(), lr=0.0005,weight_decay=0.01)
+optimizer = optim.Adam(mlp_model.parameters(), lr=0.001)
 
 checkpoint_path = "checkpoint.pth"  # Path to save/load checkpoint
 
@@ -65,7 +65,7 @@ def load_checkpoint(filename=checkpoint_path):
     if os.path.exists(filename):
         checkpoint = torch.load(filename)
         model = CustomMLP().to(device)
-        optimizer = optim.Adam(model.parameters(), lr=0.0005,weight_decay=0.01)
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
         model.load_state_dict(checkpoint['model_state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
         start_epoch = checkpoint['epoch'] + 1  # We want to resume from the next epoch
@@ -74,7 +74,7 @@ def load_checkpoint(filename=checkpoint_path):
     else:
         print("No checkpoint found, starting from scratch.")
         model = CustomMLP().to(device)
-        optimizer = optim.Adam(model.parameters(), lr=0.0005,weight_decay=0.01)
+        optimizer = optim.Adam(model.parameters(), lr=0.001)
         return model, optimizer, 0  # Start from epoch 0
 
 def load_dataloaders(train_loader_path, val_loader_path):
@@ -192,11 +192,11 @@ def plot_loss_curve(train_losses, val_losses):
     plt.show()
 
 
-epochs = 3
+epochs = 10
 save_interval = 1  # Save checkpoint every 1 epoch
 logging.basicConfig(filename='train_validation_losses.log', level=logging.DEBUG)
 
-# Load dataloaders
+# Load dataloadersq
 train_loader, val_loader = load_dataloaders(
     '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/train_loader.pkl',
     '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/val_loader.pkl'

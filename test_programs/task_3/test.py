@@ -192,7 +192,7 @@ def plot_loss_curve(train_losses, val_losses):
     plt.show()
 
 
-epochs = 10
+epochs = 5
 save_interval = 1  # Save checkpoint every 1 epoch
 logging.basicConfig(filename='train_validation_losses.log', level=logging.DEBUG)
 

@@ -54,6 +54,9 @@ def process_annotations(file_prefix):
     with open(train_file, 'r') as f:
         train_data = json.load(f)
 
+    # Extract the categories from the original annotations file
+    categories = train_data["categories"]  # This contains the 'categories' field
+
     # Use only the train images and annotations
     combined_images = train_data["images"]
     combined_annotations = train_data["annotations"]
@@ -100,11 +103,12 @@ def process_annotations(file_prefix):
     print("Validation annotations:", len(val_annotations))
     print("Test annotations:", len(test_annotations))
 
-    # Save each split as a new JSON file
+    # Save each split as a new JSON file, including the 'categories' field
     def save_split(images_split, annotations_split, split_name):
         split_data = {
             "images": images_split,
-            "annotations": annotations_split
+            "annotations": annotations_split,
+            "categories": categories  # Include categories in the split
         }
         output_file = os.path.join(output_dir, f"{file_prefix}_{split_name}.json")
         with open(output_file, 'w') as f:

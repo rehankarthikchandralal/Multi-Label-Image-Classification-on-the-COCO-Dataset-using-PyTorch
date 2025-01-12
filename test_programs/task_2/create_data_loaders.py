@@ -1,12 +1,12 @@
 import os
-import json
-from torch.utils.data import Dataset, DataLoader
-import torch
-from torchvision import transforms
-from PIL import Image
 import pickle
 from tqdm import tqdm
-
+from torch.utils.data import DataLoader
+from torchvision import transforms
+from pycocotools.coco import COCO
+import torch
+from PIL import Image
+import json
 # Define paths
 processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"
 train_json_file = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/instances_train.json"
@@ -23,61 +23,57 @@ if not os.path.exists(train_json_file):
 if not os.path.exists(val_json_file):
     raise FileNotFoundError(f"Validation JSON annotations file not found: {val_json_file}")
 
+file_path = "/home/rehan/Projects/Pytorch_Image_Classification/coco/annotations/annotations/instances_train2017.json"
+
+with open(file_path, "r") as f:
+    data = json.load(f)
+
+print(data.keys())
+if "categories" not in data:
+    print("Categories key is missing!")
+else:
+    print("Categories:", data["categories"])
+
 # Define transformations
+# Define transformations (remove unnecessary ones)
 transform = transforms.Compose([
-    transforms.Resize((224, 224)),   # Resize the image to 224x224
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.ToTensor(),  # Only ensure the image is a Tensor
+    # Remove the normalization and resize if already done
 ])
 
-class ProcessedImagesDataset(Dataset):
-    def __init__(self, images_dir, json_file, transform=None):
-        self.images_dir = images_dir
+
+# Dataset loader for COCO
+class COCOMultiLabelDataset(torch.utils.data.Dataset):
+    def __init__(self, img_dir, ann_file, transform=None):
+        self.coco = COCO(ann_file)
+        self.img_dir = img_dir
         self.transform = transform
-
-        # Load annotations from JSON file
-        with open(json_file, 'r') as f:
-            self.annotations = json.load(f)
-
-        if isinstance(self.annotations, dict) and 'annotations' in self.annotations:
-            self.annotations = self.annotations['annotations']
-
-        self.image_filenames = []
-        self.image_labels = {}
-
-        # Process annotations
-        for ann in tqdm(self.annotations, desc="Processing annotations", unit="annotation"):
-            image_id = ann.get('image_id')
-            category_id = ann.get('category_id')
-
-            if image_id is None or category_id is None:
-                continue  # Skip invalid annotations
-
-            image_filename = f"{str(image_id).zfill(12)}.jpg"  # 12 digits padded for the processed images
-            self.image_filenames.append(image_filename)
-            self.image_labels[image_filename] = category_id
+        self.ids = list(self.coco.imgs.keys())
+        self.cat_to_contiguous = {cat['id']: idx for idx, cat in enumerate(self.coco.loadCats(self.coco.getCatIds()))}
 
     def __len__(self):
-        return len(self.image_filenames)
+        return len(self.ids)
 
-    def __getitem__(self, idx):
-        img_name = self.image_filenames[idx]
-        img_path = os.path.join(self.images_dir, img_name)
+    def __getitem__(self, index):
+        img_id = self.ids[index]
+        img_info = self.coco.loadImgs(img_id)[0]
+        img_path = os.path.join(self.img_dir, img_info['file_name'])
+        img = Image.open(img_path).convert("RGB")
 
-        if not os.path.exists(img_path):
-            print(f"Warning: Image file not found, skipping: {img_path}")
-            return None  # Skip invalid sample
-
-        image = Image.open(img_path).convert('RGB')
-        label = self.image_labels.get(img_name)
-        if label is None:
-            print(f"Warning: Label not found for image {img_name}, skipping.")
-            return None  # Skip invalid sample
-
+        # Apply transformations if necessary
         if self.transform:
-            image = self.transform(image)
+            img = self.transform(img)
 
-        return image, label
+        ann_ids = self.coco.getAnnIds(imgIds=img_id)
+        anns = self.coco.loadAnns(ann_ids)
+        labels = torch.zeros(80)
+        for ann in anns:
+            category_id = ann['category_id']
+            if category_id in self.cat_to_contiguous:
+                contiguous_id = self.cat_to_contiguous[category_id]
+                labels[contiguous_id] = 1.0
+        return img, labels
+
 
 
 # Custom collate function to handle None values
@@ -92,8 +88,8 @@ def custom_collate_fn(batch):
 # Create DataLoader instances for train and validation
 def create_dataloaders():
     # Create Dataset for train and validation
-    train_dataset = ProcessedImagesDataset(images_dir=processed_images_dir, json_file=train_json_file, transform=transform)
-    val_dataset = ProcessedImagesDataset(images_dir=processed_images_dir, json_file=val_json_file, transform=transform)
+    train_dataset = COCOMultiLabelDataset(img_dir=processed_images_dir, ann_file=train_json_file, transform=transform)
+    val_dataset = COCOMultiLabelDataset(img_dir=processed_images_dir, ann_file=val_json_file, transform=transform)
 
     # Create DataLoader objects
     train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True, collate_fn=custom_collate_fn)
@@ -121,7 +117,7 @@ if __name__ == "__main__":
         for batch_idx, (images, labels) in enumerate(tqdm(loader, desc=desc, total=total_batches, ncols=100)):
             if images is None or labels is None:
                 continue
-            print(f"Batch {batch_idx+1}/{total_batches} - Image Shape: {images.shape} - Labels: {labels}")
+            print(f"Batch {batch_idx+1}/{total_batches} - Image Shape: {images.shape} - Labels Shape: {labels.shape}")
             break  # Only process the first batch to keep it fast
 
     process_data(train_loader, "Training")

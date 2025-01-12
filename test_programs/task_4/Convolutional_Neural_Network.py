@@ -13,41 +13,39 @@ from PIL import Image
 # Add the correct path for your create_data_loaders module
 sys.path.append(os.path.join(os.path.dirname(__file__), '../task_2'))
 
-# Make sure to import ProcessedImagesDataset from the correct module
-from create_data_loaders import ProcessedImagesDataset
-from create_data_loaders import custom_collate_fn
+# Make sure to import COCOMultiLabelDataset from the correct module
+from create_data_loaders import COCOMultiLabelDataset
 
 print("Starting script execution...")
 
-# Define paths to DataLoader pickle files
-train_loader_path = '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/train_loader.pkl'
-val_loader_path = '/home/rehan/Projects/Pytorch_Image_Classification/dataloaders/val_loader.pkl'
+# Paths to image directories and annotations
+train_img_dir = '/path/to/train/images'
+val_img_dir = '/path/to/val/images'
+train_ann_file = '/path/to/train/annotations.json'
+val_ann_file = '/path/to/val/annotations.json'
 
-train_loader = None
-val_loader = None
+# Define data transformations (example)
+data_transforms = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+])
 
-# Try loading the DataLoader objects if available
-if os.path.exists(train_loader_path) and os.path.exists(val_loader_path):
-    print("Loading saved DataLoader objects from pickle files...")
-    try:
-        with open(train_loader_path, 'rb') as f:
-            train_loader = pickle.load(f)
-        with open(val_loader_path, 'rb') as f:
-            val_loader = pickle.load(f)
-        print("DataLoader objects loaded successfully.")
-    except Exception as e:
-        raise RuntimeError(f"Failed to load DataLoader objects: {str(e)}")
-else:
-    print("Saved DataLoader files not found. Proceeding with dataset creation...")
+# Datasets and Dataloaders for train and validation sets
+train_dataset = COCOMultiLabelDataset(img_dir=train_img_dir, ann_file=train_ann_file, transform=data_transforms)
+val_dataset = COCOMultiLabelDataset(img_dir=val_img_dir, ann_file=val_ann_file, transform=data_transforms)
 
-# Check if DataLoaders are loaded successfully
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4)
+val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False, num_workers=4)
+
+# Check if DataLoaders are created successfully
 if not train_loader or not val_loader:
-    raise RuntimeError("Failed to load train_loader or val_loader.")
+    raise RuntimeError("Failed to create train_loader or val_loader.")
 
 # Check for GPU availability
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device selected: {device}")
 
+# Convolutional Neural Network definition
 class Convolutional_Neural_Network(nn.Module):
     def __init__(self):
         super(Convolutional_Neural_Network, self).__init__()
@@ -71,6 +69,9 @@ class Convolutional_Neural_Network(nn.Module):
         x = self.fc(x)
         return x  # CrossEntropyLoss expects raw logits, not softmax probabilities
 
+# Flag to start fresh or resume training
+start_fresh = True  # Set to False if you want to resume training
+
 # Initialize the CNN model
 model = Convolutional_Neural_Network().to(device)
 
@@ -85,9 +86,8 @@ model_save_path = os.path.join(model_save_dir, 'cnn_model.pth')
 optimizer_save_path = os.path.join(model_save_dir, 'optimizer.pth')
 epoch_save_path = os.path.join(model_save_dir, 'epoch.txt')
 
-# Load previously trained model, optimizer, and epoch if available
-start_epoch = 3
-if os.path.exists(model_save_path):
+# Load previously trained model, optimizer, and epoch if available and if not starting fresh
+if not start_fresh and os.path.exists(model_save_path):
     print("Loading saved model...")
     model.load_state_dict(torch.load(model_save_path))
     if os.path.exists(optimizer_save_path):
@@ -97,7 +97,10 @@ if os.path.exists(model_save_path):
         print("Loading last saved epoch...")
         with open(epoch_save_path, 'r') as f:
             start_epoch = int(f.read().strip())
-    print(f"Resuming training from epoch {start_epoch + 1}")
+        print(f"Resuming training from epoch {start_epoch + 1}")
+else:
+    print("Starting fresh training...")
+    start_epoch = 0  # Start from the first epoch if starting fresh
 
 # Set number of epochs
 num_epochs = 10
@@ -138,7 +141,7 @@ for epoch in range(start_epoch, num_epochs):
     train_losses.append(avg_train_loss)
     print(f"Epoch {epoch + 1}/{num_epochs} - Training Loss: {avg_train_loss:.4f}")
 
-    # Save model, optimizer, and epoch
+    # Save model, optimizer, and epoch after each epoch
     torch.save(model.state_dict(), model_save_path)
     torch.save(optimizer.state_dict(), optimizer_save_path)
     with open(epoch_save_path, 'w') as f:

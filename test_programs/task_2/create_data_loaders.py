@@ -8,7 +8,7 @@ import torch
 from PIL import Image
 import json
 # Define paths
-processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"
+processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/coco/images/train2017"
 train_json_file = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/instances_train.json"
 val_json_file = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/instances_val.json"
 data_loader_save_dir = "/home/rehan/Projects/Pytorch_Image_Classification/dataloaders"
@@ -37,9 +37,22 @@ else:
 # Define transformations
 # Define transformations (remove unnecessary ones)
 transform = transforms.Compose([
-    transforms.ToTensor(),  # Only ensure the image is a Tensor
-    # Remove the normalization and resize if already done
+    # Random crop and resize to 224x224
+    transforms.RandomResizedCrop(224),  # Randomly crop and resize images to 224x224
+    
+    # Random horizontal flip for data augmentation
+    transforms.RandomHorizontalFlip(),  # Randomly flip the image horizontally
+    
+    # Random rotation for data augmentation
+    transforms.RandomRotation(30),  # Randomly rotate the image by up to 30 degrees
+    
+    # Convert image to Tensor
+    transforms.ToTensor(),  # Convert PIL image to PyTorch tensor
+    
+    # Normalize the image with mean and std (this will depend on your dataset)
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])  # These are ImageNet statistics
 ])
+
 
 
 # Dataset loader for COCO

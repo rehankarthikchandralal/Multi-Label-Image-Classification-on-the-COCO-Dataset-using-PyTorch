@@ -100,8 +100,13 @@ class COCOMultiLabelDataset(Dataset):
     # Get an image and its corresponding labels, based on an index
     def __getitem__(self, index):
         img_id = self.ids[index] # Get the image ID corresponding to the given index
-        path = "0" * (12 - len(str(img_id))) +str(img_id) + ".jpg"
+        path = "0" * (12 - len(str(img_id))) + str(img_id) + ".jpg"
         img_path = os.path.join(self.img_dir, path) # Create the full path to the image
+
+        # Check if the image exists
+        if not os.path.exists(img_path):
+            print(f"Image {img_path} not found. Skipping.")
+            return self.__getitem__((index + 1) % len(self.ids))
 
         # Load the image using PIL and convert it to RGB format
         img = Image.open(img_path).convert("RGB")
@@ -110,7 +115,7 @@ class COCOMultiLabelDataset(Dataset):
 
         # Get multi-label annotations
         anns = self.coco[img_id]
-        labels = torch.zeros(90)  # Initialize a tensor of zeros for multi label classification (80 different classes in COCO)
+        labels = torch.zeros(90)  # Initialize a tensor of zeros for multi-label classification (80 different classes in COCO)
 
         # Iterate through each annotation to set the corresponding labels
         for ann in anns:
@@ -125,7 +130,7 @@ class COCOMultiLabelDataset(Dataset):
 img_dir = '/home/rehan/Projects/Pytorch_Image_Classification/coco/images/train2017'
 
 img_transforms = transforms.Compose([
-        transforms.Resize((224, 224)), # Resize Images to a size of 24*24 Pixels
+        transforms.Resize((224, 224)), # Resize Images to a size of 224*224 Pixels
         transforms.ToTensor(), 
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225]) # Normalization using standard values for RGB images
@@ -138,8 +143,8 @@ train_data = COCOMultiLabelDataset(img_dir=img_dir,
 
 # In[8]:
 
-train_size = int(0.8 * len(train_data))  # 90% of the data will be used for training
-val_size = int(0.1 * len(train_data))  # 10% of the data  will be used for validation
+train_size = int(0.8 * len(train_data))  # 80% of the data will be used for training
+val_size = int(0.1 * len(train_data))  # 10% of the data will be used for validation
 test_size = len(train_data) - train_size - val_size # Remaining data will be used for test
 
 train_data, val_data, test_data = random_split(train_data, [train_size, val_size, test_size]) # Divide dataset into training, validation and test splits. 
@@ -197,12 +202,12 @@ class CustomMLP(nn.Module):
     def __init__(self):
         super(CustomMLP, self).__init__()  # Call the parent class's constructor
 
-        #First Layer
-        self.fc1 = nn.Linear(224 * 224 *3 ,512) # Fully connected layer that takes 224*224*3Pixel input and maps it to 512 units.
-        #Second Layer
-        self.fc2 = nn.Linear(512,512) # Another fully connected layer that keeps the 512 units.
-        #Output layer
-        self.fc3 = nn.Linear(512,90) # Output layer that maps the 512 units to 80 units.
+        # First Layer
+        self.fc1 = nn.Linear(224 * 224 * 3, 512) # Fully connected layer that takes 224*224*3Pixel input and maps it to 512 units.
+        # Second Layer
+        self.fc2 = nn.Linear(512, 512) # Another fully connected layer that keeps the 512 units.
+        # Output layer
+        self.fc3 = nn.Linear(512, 90) # Output layer that maps the 512 units to 90 units.
 
         # Define the activation function - ReLU (Rectified Linear Unit) - Sigmoid
         self.relu = nn.ReLU() # ReLU introduces non-linearity after each layer
@@ -225,151 +230,77 @@ oop_model = CustomMLP().to(device)  # Move the model to the device (GPU/CPU)
 
 # In[13]:
 
-# Move model to GPU if available
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-oop_model.to(device)
-
-# In[14]:
-
 # Define Loss function
 loss_fn = nn.BCELoss()  # Use normal Binary Cross-Entropy loss
 
 # Define Optimizer
 optimizer = optim.Adam(oop_model.parameters(), lr=0.001)
 
+# In[14]:
+
+# Modified training loop to return average training loss for each epoch and resume from a specific checkpoint
+# Modified training loop to include validation loss calculation
+def train_model(model, device, train_loader, val_loader, optimizer, loss_fn, start_epoch=0, num_epochs=10, checkpoint_path="model_checkpoint.pth"):
+    model.train()  # Set the model to training mode
+
+    # Load checkpoint if available
+    if os.path.exists(checkpoint_path):
+        print(f"Resuming training from checkpoint: {checkpoint_path}")
+        checkpoint = torch.load(checkpoint_path)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        start_epoch = checkpoint['epoch'] + 1
+
+    # Open log file in append mode
+    with open('training_validation_log.txt', 'a') as log_file:
+        # Loop through epochs starting from the specified epoch
+        for epoch in range(start_epoch, num_epochs):
+            running_loss = 0.0
+
+            # Training step
+            model.train()
+            for batch_idx, (data, target) in enumerate(tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs} Training", unit="batch")):
+                data, target = data.to(device), target.to(device)
+
+                optimizer.zero_grad()
+                output = model(data)
+                loss = loss_fn(output, target)
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item()
+
+            avg_train_loss = running_loss / len(train_loader)
+
+            # Validation step
+            model.eval()
+            val_loss = 0.0
+            with torch.no_grad():
+                for data, target in tqdm(val_loader, desc=f"Epoch {epoch+1}/{num_epochs} Validation", unit="batch"):
+                    data, target = data.to(device), target.to(device)
+                    output = model(data)
+                    loss = loss_fn(output, target)
+                    val_loss += loss.item()
+
+            avg_val_loss = val_loss / len(val_loader)
+
+            # Log the training and validation losses
+            log_file.write(f"Epoch {epoch+1}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}\n")
+            log_file.flush()
+
+            # Save checkpoint
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+            }, checkpoint_path)
+
+    print("Training complete.")
+
 # In[15]:
 
-# Modified training loop to return average training loss for each epoch
-def train_model(model, device, train_loader, optimizer, loss_fn):
-    model.train()  # Set the model to training mode
-    running_loss = 0.0  # Initialize a variable to keep track of the cumulative loss
+# Call the function to train the model
+train_model(oop_model, device, train_loader, val_loader, optimizer, loss_fn, num_epochs=10)
 
-    # Iterate over batches of data from the training set, wrap with tqdm for progress bar
-    for batch_idx, (data, target) in enumerate(tqdm(train_loader, desc="Training", unit="batch")):
-        data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device (GPU/CPU)
 
-        # Zero the gradients for the optimizer
-        optimizer.zero_grad()
 
-        # Forward pass: compute predicted outputs by passing data through the model
-        output = model(data)
-
-        # Calculate the loss between the predicted outputs and the true labels
-        loss = loss_fn(output, target)
-
-        # Backward pass: compute gradients of the loss with respect to model parameters
-        loss.backward()
-
-        # Update the model weights based on the computed gradients
-        optimizer.step()
-
-        running_loss += loss.item()  # Accumulate the loss for the current batch
-
-        # Optionally, print progress every 50 batches (or adjust the frequency)
-        if batch_idx % 50 == 0:
-            print(f'Training Batch {batch_idx}/{len(train_loader)} - Loss: {loss.item():.4f}')
-
-    # Compute the average loss for the entire epoch
-    avg_train_loss = running_loss / len(train_loader)
-    return avg_train_loss  # Return the average training loss for this epoch
-
-# In[16]:
-
-train_loss = train_model(oop_model, device, train_loader, optimizer, loss_fn)
-
-# In[1]:
-
-# Validation function
-def validate_model(model, device, val_loader, loss_fn):
-    model.eval()  # Set the model to evaluation mode
-    val_loss = 0.0  # Variable to accumulate validation loss
-
-    # Iterate over batches of data from the validation set, wrap with tqdm for progress bar
-    for batch_idx, (data, target) in enumerate(tqdm(val_loader, desc="Validation", unit="batch")):
-        data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device (GPU/CPU)
-
-        # Forward pass: compute predicted outputs by passing data through the model
-        output = model(data)
-
-        # Calculate the loss between the predicted outputs and the true labels
-        loss = loss_fn(output, target)
-
-        val_loss += loss.item()  # Accumulate the loss for the current batch
-
-    # Compute the average loss for the entire validation set
-    avg_val_loss = val_loss / len(val_loader)
-    return avg_val_loss  # Return the average validation loss for this epoch
-
-# In[19]:
-
-# Testing function
-def test_model(model, device, test_loader, loss_fn):
-    model.eval()  # Set the model to evaluation mode
-    test_loss = 0.0  # Variable to accumulate test loss
-
-    # Iterate over batches of data from the test set, wrap with tqdm for progress bar
-    for batch_idx, (data, target) in enumerate(tqdm(test_loader, desc="Testing", unit="batch")):
-        data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device (GPU/CPU)
-
-        # Forward pass: compute predicted outputs by passing data through the model
-        output = model(data)
-
-        # Calculate the loss between the predicted outputs and the true labels
-        loss = loss_fn(output, target)
-
-        test_loss += loss.item()  # Accumulate the loss for the current batch
-
-    # Compute the average loss for the entire test set
-    avg_test_loss = test_loss / len(test_loader)
-    return avg_test_loss  # Return the average test loss for this epoch
-
-# In[20]:
-
-# Training and validation loop with validation set
-# Modified training and evaluation loop with plotting after training
-def train_and_evaluate(model, device, train_loader, val_loader, test_loader, optimizer, loss_fn, epochs=10):
-    # Lists to store losses
-    train_losses = []  # To track training losses over epochs
-    val_losses = []    # To track validation losses over epochs
-
-    # Open log file
-    log_file = open('training_validation_log.txt', 'w')
-    
-    # Loop over the number of epochs
-    for epoch in range(epochs):
-        print(f"\nEpoch {epoch + 1}/{epochs}")
-        logging.debug(f"\nEpoch {epoch + 1}/{epochs}")
-
-        # Train the model and get training loss
-        train_loss = train_model(model, device, train_loader, optimizer, loss_fn)  # Call the training function
-        train_losses.append(train_loss)  # Store the training loss
-
-        # Validate the model and get validation loss
-        val_loss = validate_model(model, device, val_loader, loss_fn)  # Call the validation function
-        val_losses.append(val_loss)  # Store the validation loss
-
-        # Store results in log file
-        log_file.write(f"Epoch {epoch+1}: Training Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}\n")
-
-        # Log the results to a log file
-        print(f"Epoch {epoch + 1}/{epochs} completed. Training Loss: {train_loss:.4f} Validation Loss: {val_loss:.4f}\n")
-        
-        # Save model every epoch
-        torch.save(model.state_dict(), f"model_epoch_{epoch+1}.pth")
-
-    log_file.close()  # Close log file after training is finished
-
-    # Plot the training and validation loss curves after training
-    plt.figure(figsize=(10, 6))
-    plt.plot(range(1, epochs + 1), train_losses, label='Training Loss', color='blue')
-    plt.plot(range(1, epochs + 1), val_losses, label='Validation Loss', color='red')
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Training and Validation Loss Curves')
-    plt.legend()
-    plt.grid(True)
-    plt.show()  # Show the plot
-
-# Call the function to train and evaluate the model
-train_and_evaluate(oop_model, device, train_loader, val_loader, test_loader, optimizer, loss_fn, epochs=5)
 

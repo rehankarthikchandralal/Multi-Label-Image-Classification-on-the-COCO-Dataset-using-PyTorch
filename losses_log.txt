@@ -1,6 +1,0 @@
-Epoch 1/10 - Training Loss: 3.3273, Validation Loss: 3.3392
-Epoch 2/10 - Training Loss: 3.3332, Validation Loss: 3.3394
-Epoch 3/10 - Training Loss: 3.3322, Validation Loss: 3.3394
-Epoch 4/10 - Training Loss: 3.3323, Validation Loss: 3.3394
-Epoch 5/10 - Training Loss: 3.3322, Validation Loss: 3.3393
-Epoch 6/10 - Training Loss: 3.3323, Validation Loss: 3.3394

@@ -1,9 +1,0 @@
-Epoch 1, Training Loss: 2.1744, Validation Loss: 2.2119
-Epoch 1, Training Loss: 2.2111, Validation Loss: 2.2119
-Epoch 2, Training Loss: 2.2111, Validation Loss: 2.2119
-Epoch 3, Training Loss: 2.2111, Validation Loss: 2.2119
-Epoch 1, Training Loss: 2.2111, Validation Loss: 2.2119
-Epoch 2, Training Loss: 2.2111, Validation Loss: 2.2119
-Epoch 3, Training Loss: 2.2111, Validation Loss: 2.2119
-Epoch 4, Training Loss: 2.2111, Validation Loss: 2.2119
-Epoch 5, Training Loss: 2.2111, Validation Loss: 2.2119

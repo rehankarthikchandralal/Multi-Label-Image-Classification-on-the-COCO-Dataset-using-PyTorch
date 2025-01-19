@@ -8,7 +8,11 @@ import torch
 from PIL import Image
 import json
 # Define paths
+<<<<<<< HEAD
 processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/coco/images/train2017"
+=======
+processed_images_dir = "/home/rehan/Projects/Pytorch_Image_Classification/processed_images"
+>>>>>>> fe3d00eb4d39a4da20c29d7ba8173d2c404c0712
 train_json_file = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/instances_train.json"
 val_json_file = "/home/rehan/Projects/Pytorch_Image_Classification/split_datasets/instances_val.json"
 data_loader_save_dir = "/home/rehan/Projects/Pytorch_Image_Classification/dataloaders"
@@ -37,6 +41,7 @@ else:
 # Define transformations
 # Define transformations (remove unnecessary ones)
 transform = transforms.Compose([
+<<<<<<< HEAD
     # Random crop and resize to 224x224
     transforms.RandomResizedCrop(224),  # Randomly crop and resize images to 224x224
     
@@ -55,6 +60,13 @@ transform = transforms.Compose([
 
 
 
+=======
+    transforms.ToTensor(),  # Only ensure the image is a Tensor
+    # Remove the normalization and resize if already done
+])
+
+
+>>>>>>> fe3d00eb4d39a4da20c29d7ba8173d2c404c0712
 # Dataset loader for COCO
 class COCOMultiLabelDataset(torch.utils.data.Dataset):
     def __init__(self, img_dir, ann_file, transform=None):

@@ -240,7 +240,7 @@ optimizer = optim.Adam(oop_model.parameters(), lr=0.001)
 
 # Modified training loop to return average training loss for each epoch and resume from a specific checkpoint
 # Modified training loop to include validation loss calculation
-def train_model(model, device, train_loader, val_loader, optimizer, loss_fn, start_epoch=0, num_epochs=10, checkpoint_path="model_checkpoint.pth"):
+def train_model(model, device, train_loader, val_loader, optimizer, loss_fn, start_epoch=0, num_epochs=15, checkpoint_path="model_checkpoint.pth"):
     model.train()  # Set the model to training mode
 
     # Load checkpoint if available
@@ -299,7 +299,7 @@ def train_model(model, device, train_loader, val_loader, optimizer, loss_fn, sta
 # In[15]:
 
 # Call the function to train the model
-train_model(oop_model, device, train_loader, val_loader, optimizer, loss_fn, num_epochs=10)
+train_model(oop_model, device, train_loader, val_loader, optimizer, loss_fn, num_epochs=15)
 
 
 

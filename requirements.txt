@@ -6,4 +6,3 @@ torchvision
 pycocotools
 scikit-learn
 tqdm
-

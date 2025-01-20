@@ -3,3 +3,5 @@ split_datasets/
 myenv/
 processed_images/
 dataloaders/
+model_checkpoint.pth
+trained_models/

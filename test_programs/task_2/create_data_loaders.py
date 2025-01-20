@@ -71,20 +71,12 @@ class COCOMultiLabelDataset(torch.utils.data.Dataset):
         img_id = self.ids[index]
         img_info = self.coco.loadImgs(img_id)[0]
         img_path = os.path.join(self.img_dir, img_info['file_name'])
-
-        try:
-            # Try to open the image
-            img = Image.open(img_path).convert("RGB")
-        except FileNotFoundError:
-            print(f"File not found: {img_path}. Skipping...")
-            # Skip to the next index (use modulo to ensure wrap-around)
-            return self.__getitem__((index + 1) % len(self.ids))
+        img = Image.open(img_path).convert("RGB")
 
         # Apply transformations if necessary
         if self.transform:
             img = self.transform(img)
 
-        # Load annotations and create labels
         ann_ids = self.coco.getAnnIds(imgIds=img_id)
         anns = self.coco.loadAnns(ann_ids)
         labels = torch.zeros(80)
@@ -93,7 +85,6 @@ class COCOMultiLabelDataset(torch.utils.data.Dataset):
             if category_id in self.cat_to_contiguous:
                 contiguous_id = self.cat_to_contiguous[category_id]
                 labels[contiguous_id] = 1.0
-
         return img, labels
 
 

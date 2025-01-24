@@ -98,19 +98,35 @@ class COCOMultiLabelDataset(Dataset):
         return len(self.ids)
 
     # Get an image and its corresponding labels, based on an index
+# Get an image and its corresponding labels, based on an index
+# Get an image and its corresponding labels, based on an index
     def __getitem__(self, index):
-        img_id = self.ids[index] # Get the image ID corresponding to the given index
+        img_id = self.ids[index]  # Get the image ID corresponding to the given index
         path = "0" * (12 - len(str(img_id))) + str(img_id) + ".jpg"
-        img_path = os.path.join(self.img_dir, path) # Create the full path to the image
+        img_path = os.path.join(self.img_dir, path)  # Create the full path to the image
 
         # Check if the image exists
-        if not os.path.exists(img_path):
+        attempts = 0
+        while not os.path.exists(img_path) and attempts < 10:  # Try up to 10 times to skip bad images
             print(f"Image {img_path} not found. Skipping.")
-            return self.__getitem__((index + 1) % len(self.ids))
+            index = (index + 1) % len(self.ids)  # Skip to next image
+            img_id = self.ids[index]  # Get new image ID
+            path = "0" * (12 - len(str(img_id))) + str(img_id) + ".jpg"
+            img_path = os.path.join(self.img_dir, path)
+            attempts += 1
+
+        if attempts == 10:  # If unable to find a valid image after 10 tries
+            print(f"Unable to find a valid image after 10 attempts. Returning empty tensor.")
+            return torch.zeros(3, 224, 224), torch.zeros(90)  # Return a dummy image and label
 
         # Load the image using PIL and convert it to RGB format
-        img = Image.open(img_path).convert("RGB")
-        if self.transform is not None: # If transformation is given, apply it to the image
+        try:
+            img = Image.open(img_path).convert("RGB")
+        except Exception as e:
+            print(f"Error loading image {img_path}: {e}. Skipping.")
+            return self.__getitem__((index + 1) % len(self.ids))  # This will just move to the next image
+
+        if self.transform is not None:  # If transformation is given, apply it to the image
             img = self.transform(img)
 
         # Get multi-label annotations
@@ -119,10 +135,12 @@ class COCOMultiLabelDataset(Dataset):
 
         # Iterate through each annotation to set the corresponding labels
         for ann in anns:
-            category_id = ann['category_id'] # Extract the category ID from the annotation
+            category_id = ann['category_id']  # Extract the category ID from the annotation
             labels[category_id-1] = 1.0
 
-        return img, labels # Return the transformed image and its multi-label tensor
+        return img, labels  # Return the transformed image and its multi-label tensor
+
+
 
 # In[7]:
 

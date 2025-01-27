@@ -130,7 +130,7 @@ class COCOMultiLabelDataset(Dataset):
         labels = torch.zeros(80)  # Initialize a tensor of zeros for multi-label classification (80 different classes in COCO)
 
         # Iterate through each annotation to set the corresponding labels
-        
+
         for ann in anns:
             category_id = ann['category_id']
             if category_id in category_mapping:  # Ensure ID is valid
@@ -254,6 +254,7 @@ optimizer = optim.Adam(oop_model.parameters(), lr=0.001)
 
 # Modified training loop to return average training loss for each epoch and resume from a specific checkpoint
 # Modified training loop to include validation loss calculation
+# Training function with model checkpoint every 5 epochs
 def train_model(model, device, train_loader, val_loader, optimizer, loss_fn, start_epoch=0, num_epochs=15, checkpoint_path="model_checkpoint.pth"):
     model.train()  # Set the model to training mode
 
@@ -267,7 +268,6 @@ def train_model(model, device, train_loader, val_loader, optimizer, loss_fn, sta
 
     # Open log file in append mode
     with open('training_validation_log.txt', 'a') as log_file:
-        # Loop through epochs starting from the specified epoch
         for epoch in range(start_epoch, num_epochs):
             running_loss = 0.0
 
@@ -301,12 +301,14 @@ def train_model(model, device, train_loader, val_loader, optimizer, loss_fn, sta
             log_file.write(f"Epoch {epoch+1}: Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}\n")
             log_file.flush()
 
-            # Save checkpoint
-            torch.save({
-                'epoch': epoch,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-            }, checkpoint_path)
+            # Save checkpoint every 5 epochs
+            if (epoch + 1) % 5 == 0:
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                }, checkpoint_path)
+                print(f"Checkpoint saved at epoch {epoch + 1}")
 
     print("Training complete.")
 

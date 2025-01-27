@@ -115,7 +115,7 @@ class COCOMultiLabelDataset(Dataset):
 
         # Get multi-label annotations
         anns = self.coco[img_id]
-        labels = torch.zeros(90)  # Initialize a tensor of zeros for multi-label classification (80 different classes in COCO)
+        labels = torch.zeros(80)  # Initialize a tensor of zeros for multi-label classification (80 different classes in COCO)
 
         # Iterate through each annotation to set the corresponding labels
         for ann in anns:
@@ -207,7 +207,7 @@ class CustomMLP(nn.Module):
         # Second Layer
         self.fc2 = nn.Linear(512, 512) # Another fully connected layer that keeps the 512 units.
         # Output layer
-        self.fc3 = nn.Linear(512, 90) # Output layer that maps the 512 units to 90 units.
+        self.fc3 = nn.Linear(512, 80) # Output layer that maps the 512 units to 80 units.
 
         # Define the activation function - ReLU (Rectified Linear Unit) - Sigmoid
         self.relu = nn.ReLU() # ReLU introduces non-linearity after each layer

@@ -226,14 +226,20 @@ import numpy as np
 def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=False, cmap=plt.cm.Blues):
     """
     Plot confusion matrices for the first 5 labels in a multilabel classification task.
+    Each section of the confusion matrix is annotated as TP, FP, TN, or FN.
     """
+    from sklearn.metrics import multilabel_confusion_matrix
+    import numpy as np
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+
     # Compute confusion matrices for each class
     cm_list = multilabel_confusion_matrix(y_true, y_pred)
 
     # Plot confusion matrices for the first 5 labels only
     num_classes = min(5, len(class_names))  # Limit to the first 5 labels
-    plt.figure(figsize=(15, num_classes * 3))
-    
+    plt.figure(figsize=(20, num_classes * 4))  # Adjust figsize for readability
+
     for i, cm in enumerate(cm_list[:5]):  # Iterate over the first 5 classes
         # Normalize if needed and avoid division by zero
         if normalize:
@@ -242,14 +248,34 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
                 cm = np.divide(cm.astype('float'), row_sums, where=row_sums != 0)
                 cm = np.nan_to_num(cm)  # Replace NaNs with zeros for classes with no samples
 
+        # Annotate the sections of the confusion matrix
+        labels = np.array([
+            ["TN", "FP"],
+            ["FN", "TP"]
+        ])
+        section_values = np.array([
+            [cm[0, 0], cm[0, 1]],
+            [cm[1, 0], cm[1, 1]]
+        ])
+
+        # Combine labels with values for annotation
+        annot = np.empty_like(section_values, dtype=object)
+        for j in range(section_values.shape[0]):
+            for k in range(section_values.shape[1]):
+                annot[j, k] = f"{labels[j, k]}\n{section_values[j, k]:.2f}" if normalize else f"{labels[j, k]}\n{int(section_values[j, k])}"
+
         # Heatmap visualization
         plt.subplot(1, 5, i + 1)  # Display matrices in a single row for the first 5 classes
-        sns.heatmap(cm, annot=True, fmt='.2f' if normalize else 'd', cmap=cmap,
+        sns.heatmap(cm, annot=annot, fmt='', cmap=cmap, cbar=False,
                     xticklabels=['Not ' + class_names[i], class_names[i]],
                     yticklabels=['Not ' + class_names[i], class_names[i]])
         plt.title(f"Confusion Matrix for Class '{class_names[i]}'")
         plt.xlabel("Predicted")
         plt.ylabel("Actual")
+
+    plt.tight_layout()
+    plt.show()
+
 
     plt.tight_layout()
     plt.show()

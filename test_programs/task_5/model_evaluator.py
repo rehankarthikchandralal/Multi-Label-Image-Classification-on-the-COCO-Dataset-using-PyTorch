@@ -224,21 +224,26 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=False, cmap=plt.cm.Blues):
+    """
+    Plot confusion matrices for the first 5 labels in a multilabel classification task.
+    """
     # Compute confusion matrices for each class
     cm_list = multilabel_confusion_matrix(y_true, y_pred)
 
-    # Plot each confusion matrix for each class
-    num_classes = len(class_names)
-    plt.figure(figsize=(15, num_classes * 2))
+    # Plot confusion matrices for the first 5 labels only
+    num_classes = min(5, len(class_names))  # Limit to the first 5 labels
+    plt.figure(figsize=(15, num_classes * 3))
     
-    for i, cm in enumerate(cm_list):
-        # Normalize if needed
+    for i, cm in enumerate(cm_list[:5]):  # Iterate over the first 5 classes
+        # Normalize if needed and avoid division by zero
         if normalize:
-            cm = cm.astype('float') / cm.sum(axis=1, keepdims=True)
-            cm = np.nan_to_num(cm)  # Handle NaN for empty classes
+            row_sums = cm.sum(axis=1, keepdims=True)
+            with np.errstate(divide='ignore', invalid='ignore'):
+                cm = np.divide(cm.astype('float'), row_sums, where=row_sums != 0)
+                cm = np.nan_to_num(cm)  # Replace NaNs with zeros for classes with no samples
 
         # Heatmap visualization
-        plt.subplot((num_classes + 2) // 3, 3, i + 1)  # Organize in grid
+        plt.subplot(1, 5, i + 1)  # Display matrices in a single row for the first 5 classes
         sns.heatmap(cm, annot=True, fmt='.2f' if normalize else 'd', cmap=cmap,
                     xticklabels=['Not ' + class_names[i], class_names[i]],
                     yticklabels=['Not ' + class_names[i], class_names[i]])
@@ -248,6 +253,7 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
 
     plt.tight_layout()
     plt.show()
+
 
 
 # In[14]:

@@ -31,7 +31,10 @@ from sklearn.metrics import multilabel_confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
-
+from sklearn.metrics import multilabel_confusion_matrix
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Libraries for data processing and visualization
 from matplotlib import pyplot as plt # For plotting graphs
@@ -246,22 +249,22 @@ def evaluate_model_with_per_label_metrics(model, test_loader, device):
 
 def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=False, cmap=plt.cm.Blues):
     """
-    Plot confusion matrices for the first 5 labels in a multilabel classification task.
+    Plot confusion matrices for the first 5 class names in a multilabel classification task.
     Each section of the confusion matrix is annotated as TP, FP, TN, or FN.
     """
-    from sklearn.metrics import multilabel_confusion_matrix
-    import numpy as np
-    import seaborn as sns
-    import matplotlib.pyplot as plt
 
     # Compute confusion matrices for each class
     cm_list = multilabel_confusion_matrix(y_true, y_pred)
 
-    # Plot confusion matrices for the first 5 labels only
-    num_classes = min(5, len(class_names))  # Limit to the first 5 labels
+    # Extract first five class names and confusion matrices
+    selected_classes = list(class_names.values())[:5]
+    selected_cm_list = cm_list[:5]
+
+    # Plot confusion matrices for the first 5 class names
+    num_classes = len(selected_classes)  # Limit to the first 5 class names
     plt.figure(figsize=(20, num_classes * 4))  # Adjust figsize for readability
 
-    for i, cm in enumerate(cm_list[:5]):  # Iterate over the first 5 classes
+    for i, (class_name, cm) in enumerate(zip(selected_classes, selected_cm_list)):
         # Normalize if needed and avoid division by zero
         if normalize:
             row_sums = cm.sum(axis=1, keepdims=True)
@@ -288,9 +291,9 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
         # Heatmap visualization
         plt.subplot(1, 5, i + 1)  # Display matrices in a single row for the first 5 classes
         sns.heatmap(cm, annot=annot, fmt='', cmap=cmap, cbar=False,
-                    xticklabels=['Not ' + class_names[i], class_names[i]],
-                    yticklabels=['Not ' + class_names[i], class_names[i]])
-        plt.title(f"Confusion Matrix for Class '{class_names[i]}'")
+                    xticklabels=['Not ' + class_name, class_name],
+                    yticklabels=['Not ' + class_name, class_name])
+        plt.title(f"Confusion Matrix for Class '{class_name}'")
         plt.xlabel("Predicted")
         plt.ylabel("Actual")
 
@@ -298,8 +301,52 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
     plt.show()
 
 
-    plt.tight_layout()
-    plt.show()
+# Updated evaluation function with class names
+def evaluate_model_with_class_names(model, test_loader, device, class_names):
+    y_true = []
+    y_pred = []
+
+    with torch.no_grad():
+        for data, target in tqdm(test_loader, desc="Evaluating Model", unit="batch"):
+            data, target = data.to(device), target.to(device)
+
+            output = model(data)
+            predictions = (output > 0.5).float()  # Threshold for multi-label classification
+
+            y_true.append(target.cpu().numpy())
+            y_pred.append(predictions.cpu().numpy())
+
+    y_true = np.vstack(y_true)
+    y_pred = np.vstack(y_pred)
+
+    # Calculate overall metrics
+    overall_accuracy = accuracy_score(y_true, y_pred)
+    overall_precision = precision_score(y_true, y_pred, average='macro', zero_division=1)
+    overall_recall = recall_score(y_true, y_pred, average='macro', zero_division=1)
+    overall_f1 = f1_score(y_true, y_pred, average='macro', zero_division=1)
+
+    print(f"Overall Accuracy: {overall_accuracy:.4f}")
+    print(f"Overall Precision: {overall_precision:.4f}")
+    print(f"Overall Recall: {overall_recall:.4f}")
+    print(f"Overall F1 Score: {overall_f1:.4f}")
+
+    # Calculate per-label metrics using class names
+    label_accuracies = (y_true == y_pred).mean(axis=0)
+    label_precisions = precision_score(y_true, y_pred, average=None, zero_division=1)
+    label_recalls = recall_score(y_true, y_pred, average=None, zero_division=1)
+    label_f1_scores = f1_score(y_true, y_pred, average=None, zero_division=1)
+
+    # Print per-label metrics with class names
+    print("\nPer-Label Metrics:")
+    for i, (acc, prec, rec, f1) in enumerate(zip(label_accuracies, label_precisions, label_recalls, label_f1_scores)):
+        class_name = class_names.get(i + 1, f"Label {i + 1}")
+        print(f"{class_name}:")
+        print(f"  Accuracy: {acc:.4f}")
+        print(f"  Precision: {prec:.4f}")
+        print(f"  Recall: {rec:.4f}")
+        print(f"  F1 Score: {f1:.4f}")
+
+    return y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scores
 
 
 
@@ -347,10 +394,14 @@ def visualize_predictions(model, test_loader, device, n_images=5):
 # Evaluate the model on test data
 y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scores = evaluate_model_with_per_label_metrics(model, test_loader, device)
 
-# Plot confusion matrix
-class_names = [f'Class {i}' for i in range(1, 91)]  # Example class names
-plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=True)
 
+
+y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scores = evaluate_model_with_class_names(
+    model, test_loader, device, class_names
+)
+
+# Plot confusion matrices for the first 5 classes
+plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=True)
 
 # Visualize predictions
 visualize_predictions(model, test_loader, device, n_images=5)

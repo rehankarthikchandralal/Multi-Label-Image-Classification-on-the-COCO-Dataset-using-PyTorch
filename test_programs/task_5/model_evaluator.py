@@ -27,6 +27,11 @@ from torch.utils.data import Dataset, DataLoader, random_split # DataLoader for 
 from torchvision import datasets, models, transforms
 from torchvision.models import ResNet50_Weights
 from sklearn.metrics import multilabel_confusion_matrix
+from sklearn.metrics import multilabel_confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 # Libraries for data processing and visualization
 from matplotlib import pyplot as plt # For plotting graphs
@@ -185,7 +190,7 @@ model.eval()
 # In[12]:
 
 # Evaluate model on the test split
-def evaluate_model(model, test_loader, device):
+def evaluate_model_with_per_label_metrics(model, test_loader, device):
     y_true = []
     y_pred = []
 
@@ -202,26 +207,42 @@ def evaluate_model(model, test_loader, device):
     y_true = np.vstack(y_true)
     y_pred = np.vstack(y_pred)
 
-    # Calculate metrics
-    accuracy = accuracy_score(y_true, y_pred)
-    precision = precision_score(y_true, y_pred, average='macro', zero_division=1)
-    recall = recall_score(y_true, y_pred, average='macro', zero_division=1)
-    f1 = f1_score(y_true, y_pred, average='macro', zero_division=1)
+    # Calculate overall metrics
+    overall_accuracy = accuracy_score(y_true, y_pred)
+    overall_precision = precision_score(y_true, y_pred, average='macro', zero_division=1)
+    overall_recall = recall_score(y_true, y_pred, average='macro', zero_division=1)
+    overall_f1 = f1_score(y_true, y_pred, average='macro', zero_division=1)
 
-    print(f"Accuracy: {accuracy:.4f}")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall: {recall:.4f}")
-    print(f"F1 Score: {f1:.4f}")
+    print(f"Overall Accuracy: {overall_accuracy:.4f}")
+    print(f"Overall Precision: {overall_precision:.4f}")
+    print(f"Overall Recall: {overall_recall:.4f}")
+    print(f"Overall F1 Score: {overall_f1:.4f}")
 
-    return y_true, y_pred
+    # Calculate per-label metrics
+    label_accuracies = (y_true == y_pred).mean(axis=0)
+    label_precisions = precision_score(y_true, y_pred, average=None, zero_division=1)
+    label_recalls = recall_score(y_true, y_pred, average=None, zero_division=1)
+    label_f1_scores = f1_score(y_true, y_pred, average=None, zero_division=1)
+
+    # Print per-label metrics
+    print("\nPer-Label Metrics:")
+    for i, (acc, prec, rec, f1) in enumerate(zip(label_accuracies, label_precisions, label_recalls, label_f1_scores)):
+        print(f"Label {i + 1}:")
+        print(f"  Accuracy: {acc:.4f}")
+        print(f"  Precision: {prec:.4f}")
+        print(f"  Recall: {rec:.4f}")
+        print(f"  F1 Score: {f1:.4f}")
+
+    return y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scores
+
+# In[14]:
+
+# Call the updated evaluation function
+
 
 # In[13]:
 
 # Generate confusion matrix
-from sklearn.metrics import multilabel_confusion_matrix
-import seaborn as sns
-import matplotlib.pyplot as plt
-import numpy as np
 
 def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=False, cmap=plt.cm.Blues):
     """
@@ -324,7 +345,7 @@ def visualize_predictions(model, test_loader, device, n_images=5):
     plt.show()
 
 # Evaluate the model on test data
-y_true, y_pred = evaluate_model(model, test_loader, device)
+y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scores = evaluate_model_with_per_label_metrics(model, test_loader, device)
 
 # Plot confusion matrix
 class_names = [f'Class {i}' for i in range(1, 91)]  # Example class names

@@ -1,15 +1,13 @@
-Dont forget to mention that the dataset is not balanced (could lead to reduced model perfomance)
-try to connect this to the Training and Validation curves of the MLP and CNN 
-mention about the 90 label issue
+
+
 dont forget to add the comparison between CNN,MLP and RESNET 
-also add in further optimizations needed
-Slide 2
+how to deal with overfitting
+there is a correlation between label imbalance and results you get from confusion matrix and f1,accuracy scores
+in one slide, add comparison between confusion matrice,accuracy results with  label with highest occurance and label with lowest occuracne'
+tell them which metric is best
+also look at the klausur pdf and identify potential questions asked
+Infer from confusion matrix and accuracy,fi scores for mlp and CNN
 
- problem statement (multi label claddification)
- project goals
-
- Slide 3 
- dataset insights
 
 
 
@@ -28,14 +26,12 @@ Accuracy, Precision, Recall, F1-Score
 Trainable parameters
 FLOPs
 Visualize the comparison to emphasize differences
-Slide 9: Handling Imbalanced Data (Optional)
-Highlight confusion matrix analysis for underrepresented labels (e.g., poor recall)
-Discuss solutions implemented (e.g., class weighting in loss function)
-Show improvement metrics after implementing solutions (if done)
-Slide 10: Conclusion and Future Work
-Key Results:
-Summarize best-performing model (ResNet with Transfer Learning?)
-Highlight improvements through handling imbalance, augmentation, and hyperparameter tuning
-Future Work:
+
 Suggestions for improvement (e.g., advanced augmentation, better handling of imbalance, experimenting with other models)
 End with a strong takeaway or discussion question for your audience
+
+person:
+  Accuracy: 0.9378
+  Precision: 0.9712
+  Recall: 0.9429
+  F1 Score: 0.9568

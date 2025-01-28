@@ -247,22 +247,29 @@ def evaluate_model_with_per_label_metrics(model, test_loader, device):
 
 # Generate confusion matrix
 
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import multilabel_confusion_matrix
+
 def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=False, cmap=plt.cm.Blues):
     """
-    Plot confusion matrices for the first 5 class names in a multilabel classification task.
+    Plot confusion matrices for specific class names in a multilabel classification task.
     Each section of the confusion matrix is annotated as TP, FP, TN, or FN.
+    This function plots confusion matrices for label 1 and label 89 only.
     """
 
     # Compute confusion matrices for each class
     cm_list = multilabel_confusion_matrix(y_true, y_pred)
 
-    # Extract first five class names and confusion matrices
-    selected_classes = list(class_names.values())[:5]
-    selected_cm_list = cm_list[:5]
+    # Select class names and confusion matrices for label 1 and label 89
+    selected_classes = [class_names[1], class_names[89]]
+    selected_indices = [0, 88]  # Indices for label 1 and label 89 (0-based indexing)
+    selected_cm_list = [cm_list[i] for i in selected_indices]
 
-    # Plot confusion matrices for the first 5 class names
-    num_classes = len(selected_classes)  # Limit to the first 5 class names
-    plt.figure(figsize=(20, num_classes * 4))  # Adjust figsize for readability
+    # Plot confusion matrices for the selected class names
+    num_classes = len(selected_classes)
+    plt.figure(figsize=(10, num_classes * 4))  # Adjust figsize for readability
 
     for i, (class_name, cm) in enumerate(zip(selected_classes, selected_cm_list)):
         # Normalize if needed and avoid division by zero
@@ -288,19 +295,19 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
             for k in range(section_values.shape[1]):
                 annot[j, k] = f"{labels[j, k]}\n{section_values[j, k]:.2f}" if normalize else f"{labels[j, k]}\n{int(section_values[j, k])}"
 
-        # Heatmap visualization
-        plt.subplot(1, 5, i + 1)  # Display matrices in a single row for the first 5 classes
+        # Heatmap visualization with larger font size
+        plt.subplot(1, 2, i + 1)  # Display matrices in a single row for the selected classes
         sns.heatmap(cm, annot=annot, fmt='', cmap=cmap, cbar=False,
                     xticklabels=['Not ' + class_name, class_name],
-                    yticklabels=['Not ' + class_name, class_name])
-        plt.title(f"Confusion Matrix for Class '{class_name}'")
-        plt.xlabel("Predicted")
-        plt.ylabel("Actual")
+                    yticklabels=['Not ' + class_name, class_name],
+                    annot_kws={"size": 16})  # Increase font size here
+        plt.title(f"Confusion Matrix for Class '{class_name}'", fontsize=18)  # Increase title font size
+        plt.xlabel("Predicted", fontsize=16)  # Increase x-axis label font size
+        plt.ylabel("Actual", fontsize=16)  # Increase y-axis label font size
 
     plt.tight_layout()
     plt.show()
-
-
+    
 # Updated evaluation function with class names
 def evaluate_model_with_class_names(model, test_loader, device, class_names):
     y_true = []
@@ -392,8 +399,27 @@ def visualize_predictions(model, test_loader, device, n_images=5):
     plt.show()
 
 # Evaluate the model on test data
-y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scores = evaluate_model_with_per_label_metrics(model, test_loader, device)
+#y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scores = evaluate_model_with_per_label_metrics(model, test_loader, device)
 
+class_names = {
+    1: 'person', 2: 'bicycle', 3: 'car', 4: 'motorcycle', 5: 'airplane', 
+    6: 'bus', 7: 'train', 8: 'truck', 9: 'boat', 10: 'traffic light', 
+    11: 'fire hydrant', 13: 'stop sign', 14: 'parking meter', 15: 'bench', 
+    16: 'bird', 17: 'cat', 18: 'dog', 19: 'horse', 20: 'sheep', 21: 'cow', 
+    22: 'elephant', 23: 'bear', 24: 'zebra', 25: 'giraffe', 27: 'backpack', 
+    28: 'umbrella', 31: 'handbag', 32: 'tie', 33: 'suitcase', 34: 'frisbee', 
+    35: 'skis', 36: 'snowboard', 37: 'sports ball', 38: 'kite', 39: 'baseball bat', 
+    40: 'baseball glove', 41: 'skateboard', 42: 'surfboard', 43: 'tennis racket', 
+    44: 'bottle', 46: 'wine glass', 47: 'cup', 48: 'fork', 49: 'knife', 
+    50: 'spoon', 51: 'bowl', 52: 'banana', 53: 'apple', 54: 'sandwich', 
+    55: 'orange', 56: 'broccoli', 57: 'carrot', 58: 'hot dog', 59: 'pizza', 
+    60: 'donut', 61: 'cake', 62: 'chair', 63: 'couch', 64: 'potted plant', 
+    65: 'bed', 67: 'dining table', 70: 'toilet', 72: 'tv', 73: 'laptop', 
+    74: 'mouse', 75: 'remote', 76: 'keyboard', 77: 'cell phone', 78: 'microwave', 
+    79: 'oven', 80: 'toaster', 81: 'sink', 82: 'refrigerator', 84: 'book', 
+    85: 'clock', 86: 'vase', 87: 'scissors', 88: 'teddy bear', 89: 'hair drier', 
+    90: 'toothbrush'
+}
 
 
 y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scores = evaluate_model_with_class_names(
@@ -404,5 +430,5 @@ y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scor
 plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=True)
 
 # Visualize predictions
-visualize_predictions(model, test_loader, device, n_images=5)
+#visualize_predictions(model, test_loader, device, n_images=5)
 

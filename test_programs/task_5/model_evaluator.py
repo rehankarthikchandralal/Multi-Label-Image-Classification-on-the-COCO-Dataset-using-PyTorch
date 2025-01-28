@@ -26,6 +26,7 @@ import torch.nn.functional as F  # Import functional utilities like activation f
 from torch.utils.data import Dataset, DataLoader, random_split # DataLoader for batching, and random_split for splitting data
 from torchvision import datasets, models, transforms
 from torchvision.models import ResNet50_Weights
+from sklearn.metrics import multilabel_confusion_matrix
 
 # Libraries for data processing and visualization
 from matplotlib import pyplot as plt # For plotting graphs
@@ -217,18 +218,37 @@ def evaluate_model(model, test_loader, device):
 # In[13]:
 
 # Generate confusion matrix
-def plot_confusion_matrix(y_true, y_pred, classes, normalize=False, title='Confusion Matrix', cmap=plt.cm.Blues):
-    cm = confusion_matrix(y_true.argmax(axis=1), y_pred.argmax(axis=1))
+from sklearn.metrics import multilabel_confusion_matrix
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=False, cmap=plt.cm.Blues):
+    # Compute confusion matrices for each class
+    cm_list = multilabel_confusion_matrix(y_true, y_pred)
+
+    # Plot each confusion matrix for each class
+    num_classes = len(class_names)
+    plt.figure(figsize=(15, num_classes * 2))
     
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-    
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt='.2f' if normalize else 'd', cmap=cmap, xticklabels=classes, yticklabels=classes)
-    plt.title(title)
-    plt.xlabel('Predicted label')
-    plt.ylabel('True label')
+    for i, cm in enumerate(cm_list):
+        # Normalize if needed
+        if normalize:
+            cm = cm.astype('float') / cm.sum(axis=1, keepdims=True)
+            cm = np.nan_to_num(cm)  # Handle NaN for empty classes
+
+        # Heatmap visualization
+        plt.subplot((num_classes + 2) // 3, 3, i + 1)  # Organize in grid
+        sns.heatmap(cm, annot=True, fmt='.2f' if normalize else 'd', cmap=cmap,
+                    xticklabels=['Not ' + class_names[i], class_names[i]],
+                    yticklabels=['Not ' + class_names[i], class_names[i]])
+        plt.title(f"Confusion Matrix for Class '{class_names[i]}'")
+        plt.xlabel("Predicted")
+        plt.ylabel("Actual")
+
+    plt.tight_layout()
     plt.show()
+
 
 # In[14]:
 
@@ -275,7 +295,9 @@ def visualize_predictions(model, test_loader, device, n_images=5):
 y_true, y_pred = evaluate_model(model, test_loader, device)
 
 # Plot confusion matrix
-plot_confusion_matrix(y_true, y_pred, classes=[str(i) for i in range(1, 91)])
+class_names = [f'Class {i}' for i in range(1, 91)]  # Example class names
+plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=True)
+
 
 # Visualize predictions
 visualize_predictions(model, test_loader, device, n_images=5)

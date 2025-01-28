@@ -1,0 +1,41 @@
+Dont forget to mention that the dataset is not balanced (could lead to reduced model perfomance)
+try to connect this to the Training and Validation curves of the MLP and CNN 
+mention about the 90 label issue
+dont forget to add the comparison between CNN,MLP and RESNET 
+also add in further optimizations needed
+Slide 2
+
+ problem statement (multi label claddification)
+ project goals
+
+ Slide 3 
+ dataset insights
+
+
+
+Slide 7: Transfer Learning with ResNet50
+Pretrained vs Untrained ResNet Results:
+Highlight modifications to the final layer for multi-label classification
+Training/Validation loss curves (plot)
+Metrics comparison: Accuracy, Precision, Recall, F1-Score
+Key Insights:
+How transfer learning improved performance
+Differences between pretrained and untrained ResNet
+Slide 8: Model Comparisons
+Tabular/Bar Chart Summary:
+Compare all models (MLP, CNN, ResNet-pretrained, ResNet-untrained) on metrics:
+Accuracy, Precision, Recall, F1-Score
+Trainable parameters
+FLOPs
+Visualize the comparison to emphasize differences
+Slide 9: Handling Imbalanced Data (Optional)
+Highlight confusion matrix analysis for underrepresented labels (e.g., poor recall)
+Discuss solutions implemented (e.g., class weighting in loss function)
+Show improvement metrics after implementing solutions (if done)
+Slide 10: Conclusion and Future Work
+Key Results:
+Summarize best-performing model (ResNet with Transfer Learning?)
+Highlight improvements through handling imbalance, augmentation, and hyperparameter tuning
+Future Work:
+Suggestions for improvement (e.g., advanced augmentation, better handling of imbalance, experimenting with other models)
+End with a strong takeaway or discussion question for your audience

@@ -158,7 +158,7 @@ train_data = COCOMultiLabelDataset(img_dir=img_dir,
 
 # In[8]:
 
-train_size = int(0.8 * len(train_data))  # 80% of the data will be used for training
+train_size = int(0.4 * len(train_data))  # 80% of the data will be used for training
 val_size = int(0.1 * len(train_data))  # 10% of the data will be used for validation
 test_size = len(train_data) - train_size - val_size # Remaining data will be used for test
 
@@ -317,7 +317,6 @@ def train_model(model, device, train_loader, val_loader, optimizer, loss_fn, sta
 
 # Call the function to train the model
 train_model(oop_model, device, train_loader, val_loader, optimizer, loss_fn, num_epochs=15)
-
 
 
 

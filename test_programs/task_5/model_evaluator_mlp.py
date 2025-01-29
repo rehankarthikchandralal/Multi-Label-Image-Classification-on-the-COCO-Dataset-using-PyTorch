@@ -235,24 +235,23 @@ def plot_multilabel_confusion_matrices(
     label_precisions, 
     label_recalls, 
     label_f1_scores, 
-    normalize=False, 
+    normalize=True,  # Ensure normalization by default
     cmap=plt.cm.Blues
 ):
     """
     Plot confusion matrices for specific class names in a multilabel classification task.
-    Each section of the confusion matrix is annotated as TP, FP, TN, or FN.
-    This function plots confusion matrices for label 1 (person), label 15 (bench), 
-    and label 87 (scissors) along with their computed metrics (accuracy, precision, 
+    Each section of the confusion matrix is annotated as TP, FP, TN, or FN with values like 0.98.
+    This function plots confusion matrices for label 1 (person), label 85 (clock), 
+    and label 80 (toaster) along with their computed metrics (accuracy, precision, 
     recall, F1-score).
     """
 
     # Compute confusion matrices for each class
     cm_list = multilabel_confusion_matrix(y_true, y_pred)
 
-    # Select class names and confusion matrices for label 1 (person), label 15 (bench), and label 87 (scissors)
-    # NOTE: class_names keys are typically 1-based, while indices in cm_list are 0-based.
-    selected_indices = [0, 14, 70]  # 0-based indices for labels 1, 15, and 87
-    selected_classes = [class_names[1], class_names[15], class_names[80]]  # or class_names[87] if you have that key
+    # Select class names and confusion matrices for label 1 (person), label 85 (clock), and label 80 (toaster)
+    selected_indices = [0, 84, 79]  # 0-based indices for labels 1, 85, and 80
+    selected_classes = [class_names[1], class_names[85], class_names[80]]  # Adjusted class names
     selected_cm_list = [cm_list[i] for i in selected_indices]
 
     # Plot confusion matrices for the selected class names
@@ -260,31 +259,23 @@ def plot_multilabel_confusion_matrices(
     plt.figure(figsize=(10, num_classes * 4))  # Adjust figsize for readability
 
     for i, (class_name, cm) in enumerate(zip(selected_classes, selected_cm_list)):
-        # Normalize if needed and avoid division by zero
-        if normalize:
-            row_sums = cm.sum(axis=1, keepdims=True)
-            with np.errstate(divide='ignore', invalid='ignore'):
-                cm = np.divide(cm.astype('float'), row_sums, where=row_sums != 0)
-                cm = np.nan_to_num(cm)  # Replace NaNs with zeros for classes with no samples
+        # Normalize confusion matrix to proportions
+        row_sums = cm.sum(axis=1, keepdims=True)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            cm = np.divide(cm.astype('float'), row_sums, where=row_sums != 0)
+            cm = np.nan_to_num(cm)  # Replace NaNs with zeros for classes with no samples
 
         # Confusion matrix sections
         labels = np.array([
             ["TN", "FP"],
             ["FN", "TP"]
         ])
-        section_values = np.array([
-            [cm[0, 0], cm[0, 1]],
-            [cm[1, 0], cm[1, 1]]
-        ])
-
-        # Combine labels with values for annotation
-        annot = np.empty_like(section_values, dtype=object)
-        for r in range(section_values.shape[0]):
-            for c in range(section_values.shape[1]):
-                if normalize:
-                    annot[r, c] = f"{labels[r, c]}\n{section_values[r, c]:.2f}"
-                else:
-                    annot[r, c] = f"{labels[r, c]}\n{int(section_values[r, c])}"
+        
+        # Generate annotations with values formatted as x.xx
+        annot = np.empty_like(cm, dtype=object)
+        for r in range(cm.shape[0]):
+            for c in range(cm.shape[1]):
+                annot[r, c] = f"{labels[r, c]}\n{cm[r, c]:.2f}"
 
         # Retrieve metrics for the selected class index
         class_idx = selected_indices[i]

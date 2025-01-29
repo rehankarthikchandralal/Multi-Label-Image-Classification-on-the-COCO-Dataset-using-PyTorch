@@ -254,8 +254,8 @@ def plot_multilabel_confusion_matrices(
 ):
     """
     Plot confusion matrices for specific class names in a multilabel classification task.
-    Each section of the confusion matrix is annotated as TP, FP, TN, or FN with values like 0.98/0.02.
-    This function plots confusion matrices for label 1 (person), label 15 (bench), 
+    Each section of the confusion matrix is annotated as TP, FP, TN, or FN with values like 0.98.
+    This function plots confusion matrices for label 1 (person), label 85 (clock), 
     and label 80 (toaster) along with their computed metrics (accuracy, precision, 
     recall, F1-score).
     """
@@ -263,9 +263,9 @@ def plot_multilabel_confusion_matrices(
     # Compute confusion matrices for each class
     cm_list = multilabel_confusion_matrix(y_true, y_pred)
 
-    # Select class names and confusion matrices for label 1 (person), label 15 (bench), and label 80  (toaster)
-    selected_indices = [0, 14, 70]  # 0-based indices for labels 1, 15, and 80
-    selected_classes = [class_names[1], class_names[15], class_names[80]]  # Adjusted class names
+    # Select class names and confusion matrices for label 1 (person), label 85 (clock), and label 80 (toaster)
+    selected_indices = [0, 84, 79]  # 0-based indices for labels 1, 85, and 80
+    selected_classes = [class_names[1], class_names[85], class_names[80]]  # Adjusted class names
     selected_cm_list = [cm_list[i] for i in selected_indices]
 
     # Plot confusion matrices for the selected class names
@@ -285,11 +285,11 @@ def plot_multilabel_confusion_matrices(
             ["FN", "TP"]
         ])
         
-        # Generate annotations with values formatted as x.xx/x.xx
+        # Generate annotations with values formatted as x.xx
         annot = np.empty_like(cm, dtype=object)
         for r in range(cm.shape[0]):
             for c in range(cm.shape[1]):
-                annot[r, c] = f"{labels[r, c]}\n{cm[r, c]:.2f}/{(1 - cm[r, c]):.2f}"
+                annot[r, c] = f"{labels[r, c]}\n{cm[r, c]:.2f}"
 
         # Retrieve metrics for the selected class index
         class_idx = selected_indices[i]
@@ -317,6 +317,7 @@ def plot_multilabel_confusion_matrices(
 
     plt.tight_layout()
     plt.show()
+
 
 
     

@@ -1,0 +1,456 @@
+Overall Accuracy: 0.0047
+Overall Precision: 0.9469
+Overall Recall: 0.2269
+Overall F1 Score: 0.2508
+
+Per-Label Metrics:
+person:
+  Accuracy: 0.7311
+  Precision: 0.7311
+  Recall: 1.0000
+  F1 Score: 0.8447
+bicycle:
+  Accuracy: 0.9489
+  Precision: 0.2101
+  Recall: 0.0062
+  F1 Score: 0.0120
+car:
+  Accuracy: 0.8526
+  Precision: 0.9043
+  Recall: 0.1724
+  F1 Score: 0.2895
+motorcycle:
+  Accuracy: 0.9525
+  Precision: 0.0000
+  Recall: 0.0000
+  F1 Score: 1.0000
+airplane:
+  Accuracy: 0.9836
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+bus:
+  Accuracy: 0.9462
+  Precision: 0.7020
+  Recall: 0.1209
+  F1 Score: 0.2062
+train:
+  Accuracy: 0.9779
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+truck:
+  Accuracy: 0.9144
+  Precision: 0.6416
+  Recall: 0.0208
+  F1 Score: 0.0404
+boat:
+  Accuracy: 0.9650
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+traffic light:
+  Accuracy: 0.9391
+  Precision: 0.8679
+  Recall: 0.0948
+  F1 Score: 0.1710
+fire hydrant:
+  Accuracy: 0.9880
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+Label 12:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+stop sign:
+  Accuracy: 0.9862
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+parking meter:
+  Accuracy: 0.9943
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+bench:
+  Accuracy: 0.9281
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+bird:
+  Accuracy: 0.9744
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+cat:
+  Accuracy: 0.9831
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+dog:
+  Accuracy: 0.9706
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+horse:
+  Accuracy: 0.9734
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+sheep:
+  Accuracy: 0.9846
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+cow:
+  Accuracy: 0.9844
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+elephant:
+  Accuracy: 0.9852
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+bear:
+  Accuracy: 0.9978
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+zebra:
+  Accuracy: 0.9920
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+giraffe:
+  Accuracy: 0.9896
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+Label 26:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+backpack:
+  Accuracy: 0.9045
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+umbrella:
+  Accuracy: 0.9321
+  Precision: 0.1610
+  Recall: 0.0035
+  F1 Score: 0.0069
+Label 29:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+Label 30:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+handbag:
+  Accuracy: 0.8858
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+tie:
+  Accuracy: 0.9528
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+suitcase:
+  Accuracy: 0.9691
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+frisbee:
+  Accuracy: 0.9835
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+skis:
+  Accuracy: 0.9690
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+snowboard:
+  Accuracy: 0.9841
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+sports ball:
+  Accuracy: 0.9509
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+kite:
+  Accuracy: 0.9662
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+baseball bat:
+  Accuracy: 0.9606
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+baseball glove:
+  Accuracy: 0.9633
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+skateboard:
+  Accuracy: 0.9694
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+surfboard:
+  Accuracy: 0.9762
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+tennis racket:
+  Accuracy: 0.9629
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+bottle:
+  Accuracy: 0.8674
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+Label 45:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+wine glass:
+  Accuracy: 0.9475
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+cup:
+  Accuracy: 0.8654
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+fork:
+  Accuracy: 0.9419
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+knife:
+  Accuracy: 0.9343
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+spoon:
+  Accuracy: 0.9420
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+bowl:
+  Accuracy: 0.8929
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+banana:
+  Accuracy: 0.9704
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+apple:
+  Accuracy: 0.9720
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+sandwich:
+  Accuracy: 0.9758
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+orange:
+  Accuracy: 0.9722
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+broccoli:
+  Accuracy: 0.9799
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+carrot:
+  Accuracy: 0.9744
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+hot dog:
+  Accuracy: 0.9867
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+pizza:
+  Accuracy: 0.9760
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+donut:
+  Accuracy: 0.9836
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+cake:
+  Accuracy: 0.9620
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+chair:
+  Accuracy: 0.8091
+  Precision: 0.0000
+  Recall: 0.0000
+  F1 Score: 1.0000
+couch:
+  Accuracy: 0.9547
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+potted plant:
+  Accuracy: 0.9402
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+bed:
+  Accuracy: 0.9823
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+Label 66:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+dining table:
+  Accuracy: 0.8348
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+Label 68:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+Label 69:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+toilet:
+  Accuracy: 0.9922
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+Label 71:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+tv:
+  Accuracy: 0.9575
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+laptop:
+  Accuracy: 0.9642
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+mouse:
+  Accuracy: 0.9837
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+remote:
+  Accuracy: 0.9683
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+keyboard:
+  Accuracy: 0.9837
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+cell phone:
+  Accuracy: 0.9504
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+microwave:
+  Accuracy: 0.9843
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+oven:
+  Accuracy: 0.9668
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+toaster:
+  Accuracy: 0.9969
+  Precision: 1.0000
+  Recall: 0.0000
+  F1 Score: 0.0000
+sink:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+refrigerator:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+Label 83:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+book:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+clock:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+vase:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+scissors:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+teddy bear:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+hair drier:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+toothbrush:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000

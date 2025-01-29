@@ -236,19 +236,36 @@ def evaluate_model_with_per_label_metrics(model, test_loader, device):
 # Generate confusion matrix
 
 
-def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=False, cmap=plt.cm.Blues):
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.metrics import multilabel_confusion_matrix
+
+def plot_multilabel_confusion_matrices(
+    y_true, 
+    y_pred, 
+    class_names, 
+    label_accuracies, 
+    label_precisions, 
+    label_recalls, 
+    label_f1_scores, 
+    normalize=True,  # Ensure normalization by default
+    cmap=plt.cm.Blues
+):
     """
     Plot confusion matrices for specific class names in a multilabel classification task.
-    Each section of the confusion matrix is annotated as TP, FP, TN, or FN.
-    This function plots confusion matrices for label 1 (person), label 15 (bench), and label 87 (scissors).
+    Each section of the confusion matrix is annotated as TP, FP, TN, or FN with values like 0.98/0.02.
+    This function plots confusion matrices for label 1 (person), label 15 (bench), 
+    and label 80 (toaster) along with their computed metrics (accuracy, precision, 
+    recall, F1-score).
     """
 
     # Compute confusion matrices for each class
     cm_list = multilabel_confusion_matrix(y_true, y_pred)
 
-    # Select class names and confusion matrices for label 1 (person), label 15 (bench), and label 87 (scissors)
-    selected_classes = [class_names[1], class_names[15], class_names[80]]
-    selected_indices = [0, 14, 70]  # Indices for label 1, label 15, and label 87 (0-based indexing)
+    # Select class names and confusion matrices for label 1 (person), label 15 (bench), and label 80  (toaster)
+    selected_indices = [0, 14, 70]  # 0-based indices for labels 1, 15, and 80
+    selected_classes = [class_names[1], class_names[15], class_names[80]]  # Adjusted class names
     selected_cm_list = [cm_list[i] for i in selected_indices]
 
     # Plot confusion matrices for the selected class names
@@ -256,41 +273,52 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
     plt.figure(figsize=(10, num_classes * 4))  # Adjust figsize for readability
 
     for i, (class_name, cm) in enumerate(zip(selected_classes, selected_cm_list)):
-        # Normalize if needed and avoid division by zero
-        if normalize:
-            row_sums = cm.sum(axis=1, keepdims=True)
-            with np.errstate(divide='ignore', invalid='ignore'):
-                cm = np.divide(cm.astype('float'), row_sums, where=row_sums != 0)
-                cm = np.nan_to_num(cm)  # Replace NaNs with zeros for classes with no samples
+        # Normalize confusion matrix to proportions
+        row_sums = cm.sum(axis=1, keepdims=True)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            cm = np.divide(cm.astype('float'), row_sums, where=row_sums != 0)
+            cm = np.nan_to_num(cm)  # Replace NaNs with zeros for classes with no samples
 
-        # Annotate the sections of the confusion matrix
+        # Confusion matrix sections
         labels = np.array([
             ["TN", "FP"],
             ["FN", "TP"]
         ])
-        section_values = np.array([
-            [cm[0, 0], cm[0, 1]],
-            [cm[1, 0], cm[1, 1]]
-        ])
+        
+        # Generate annotations with values formatted as x.xx/x.xx
+        annot = np.empty_like(cm, dtype=object)
+        for r in range(cm.shape[0]):
+            for c in range(cm.shape[1]):
+                annot[r, c] = f"{labels[r, c]}\n{cm[r, c]:.2f}/{(1 - cm[r, c]):.2f}"
 
-        # Combine labels with values for annotation
-        annot = np.empty_like(section_values, dtype=object)
-        for j in range(section_values.shape[0]):
-            for k in range(section_values.shape[1]):
-                annot[j, k] = f"{labels[j, k]}\n{section_values[j, k]:.2f}" if normalize else f"{labels[j, k]}\n{int(section_values[j, k])}"
+        # Retrieve metrics for the selected class index
+        class_idx = selected_indices[i]
+        acc = label_accuracies[class_idx]
+        prec = label_precisions[class_idx]
+        rec = label_recalls[class_idx]
+        f1 = label_f1_scores[class_idx]
 
-        # Heatmap visualization with larger font size
-        plt.subplot(1, num_classes, i + 1)  # Display matrices in a single row for the selected classes
-        sns.heatmap(cm, annot=annot, fmt='', cmap=cmap, cbar=False,
-                    xticklabels=['Not ' + class_name, class_name],
-                    yticklabels=['Not ' + class_name, class_name],
-                    annot_kws={"size": 16})  # Increase font size here
-        plt.title(f"'{class_name}'", fontsize=18)  # Increase title font size
-        plt.xlabel("Predicted", fontsize=16)  # Increase x-axis label font size
-        plt.ylabel("Actual", fontsize=16)  # Increase y-axis label font size
+        # Heatmap visualization
+        plt.subplot(1, num_classes, i + 1)
+        sns.heatmap(
+            cm, annot=annot, fmt='', cmap=cmap, cbar=False,
+            xticklabels=['Not ' + class_name, class_name],
+            yticklabels=['Not ' + class_name, class_name],
+            annot_kws={"size": 16}
+        )
+        # Display class name and metrics in the title
+        plt.title(
+            f"{class_name}\n"
+            f"Acc: {acc:.2f} | P: {prec:.2f} | R: {rec:.2f} | F1: {f1:.2f}",
+            fontsize=14
+        )
+        plt.xlabel("Predicted", fontsize=12)
+        plt.ylabel("Actual", fontsize=12)
 
     plt.tight_layout()
     plt.show()
+
+
     
 # Updated evaluation function with class names
 def evaluate_model_with_class_names(model, test_loader, device, class_names):
@@ -411,7 +439,20 @@ y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scor
 )
 
 # Plot confusion matrices for the first 5 classes
-plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=True)
+
+
+plot_multilabel_confusion_matrices(
+    y_true, 
+    y_pred, 
+    class_names,
+    label_accuracies, 
+    label_precisions, 
+    label_recalls, 
+    label_f1_scores,
+    normalize=False, 
+    cmap=plt.cm.Blues
+)
+
 
 # Visualize predictions
 #visualize_predictions(model, test_loader, device, n_images=5)

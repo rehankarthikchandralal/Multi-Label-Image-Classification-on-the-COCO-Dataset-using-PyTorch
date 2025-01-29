@@ -227,19 +227,32 @@ def evaluate_model_with_per_label_metrics(model, test_loader, device):
 # Generate confusion matrix
 
 
-def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=False, cmap=plt.cm.Blues):
+def plot_multilabel_confusion_matrices(
+    y_true, 
+    y_pred, 
+    class_names, 
+    label_accuracies, 
+    label_precisions, 
+    label_recalls, 
+    label_f1_scores, 
+    normalize=False, 
+    cmap=plt.cm.Blues
+):
     """
     Plot confusion matrices for specific class names in a multilabel classification task.
     Each section of the confusion matrix is annotated as TP, FP, TN, or FN.
-    This function plots confusion matrices for label 1 (person), label 15 (bench), and label 87 (scissors).
+    This function plots confusion matrices for label 1 (person), label 15 (bench), 
+    and label 87 (scissors) along with their computed metrics (accuracy, precision, 
+    recall, F1-score).
     """
 
     # Compute confusion matrices for each class
     cm_list = multilabel_confusion_matrix(y_true, y_pred)
 
     # Select class names and confusion matrices for label 1 (person), label 15 (bench), and label 87 (scissors)
-    selected_classes = [class_names[1], class_names[15], class_names[80]]
-    selected_indices = [0, 14, 70]  # Indices for label 1, label 15, and label 87 (0-based indexing)
+    # NOTE: class_names keys are typically 1-based, while indices in cm_list are 0-based.
+    selected_indices = [0, 14, 70]  # 0-based indices for labels 1, 15, and 87
+    selected_classes = [class_names[1], class_names[15], class_names[80]]  # or class_names[87] if you have that key
     selected_cm_list = [cm_list[i] for i in selected_indices]
 
     # Plot confusion matrices for the selected class names
@@ -254,7 +267,7 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
                 cm = np.divide(cm.astype('float'), row_sums, where=row_sums != 0)
                 cm = np.nan_to_num(cm)  # Replace NaNs with zeros for classes with no samples
 
-        # Annotate the sections of the confusion matrix
+        # Confusion matrix sections
         labels = np.array([
             ["TN", "FP"],
             ["FN", "TP"]
@@ -266,19 +279,36 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
 
         # Combine labels with values for annotation
         annot = np.empty_like(section_values, dtype=object)
-        for j in range(section_values.shape[0]):
-            for k in range(section_values.shape[1]):
-                annot[j, k] = f"{labels[j, k]}\n{section_values[j, k]:.2f}" if normalize else f"{labels[j, k]}\n{int(section_values[j, k])}"
+        for r in range(section_values.shape[0]):
+            for c in range(section_values.shape[1]):
+                if normalize:
+                    annot[r, c] = f"{labels[r, c]}\n{section_values[r, c]:.2f}"
+                else:
+                    annot[r, c] = f"{labels[r, c]}\n{int(section_values[r, c])}"
 
-        # Heatmap visualization with larger font size
-        plt.subplot(1, num_classes, i + 1)  # Display matrices in a single row for the selected classes
-        sns.heatmap(cm, annot=annot, fmt='', cmap=cmap, cbar=False,
-                    xticklabels=['Not ' + class_name, class_name],
-                    yticklabels=['Not ' + class_name, class_name],
-                    annot_kws={"size": 16})  # Increase font size here
-        plt.title(f"'{class_name}'", fontsize=18)  # Increase title font size
-        plt.xlabel("Predicted", fontsize=16)  # Increase x-axis label font size
-        plt.ylabel("Actual", fontsize=16)  # Increase y-axis label font size
+        # Retrieve metrics for the selected class index
+        class_idx = selected_indices[i]
+        acc = label_accuracies[class_idx]
+        prec = label_precisions[class_idx]
+        rec = label_recalls[class_idx]
+        f1 = label_f1_scores[class_idx]
+
+        # Heatmap visualization
+        plt.subplot(1, num_classes, i + 1)
+        sns.heatmap(
+            cm, annot=annot, fmt='', cmap=cmap, cbar=False,
+            xticklabels=['Not ' + class_name, class_name],
+            yticklabels=['Not ' + class_name, class_name],
+            annot_kws={"size": 16}
+        )
+        # Display class name and metrics in the title
+        plt.title(
+            f"{class_name}\n"
+            f"Acc: {acc:.2f} | P: {prec:.2f} | R: {rec:.2f} | F1: {f1:.2f}",
+            fontsize=14
+        )
+        plt.xlabel("Predicted", fontsize=12)
+        plt.ylabel("Actual", fontsize=12)
 
     plt.tight_layout()
     plt.show()
@@ -402,7 +432,18 @@ y_true, y_pred, label_accuracies, label_precisions, label_recalls, label_f1_scor
 )
 
 # Plot confusion matrices for the first 5 classes
-plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=True)
+plot_multilabel_confusion_matrices(
+    y_true, 
+    y_pred, 
+    class_names,
+    label_accuracies, 
+    label_precisions, 
+    label_recalls, 
+    label_f1_scores,
+    normalize=False, 
+    cmap=plt.cm.Blues
+)
+
 
 # Visualize predictions
 #visualize_predictions(model, test_loader, device, n_images=5)

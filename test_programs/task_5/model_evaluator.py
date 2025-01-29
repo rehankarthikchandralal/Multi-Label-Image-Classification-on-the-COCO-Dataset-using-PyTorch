@@ -3,47 +3,35 @@
 
 # In[2]:
 
+# Core libraries
 import os
 import json
 import logging
+from collections import defaultdict
+from tqdm import tqdm
+
+# PyTorch and torchvision
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
-from PIL import Image
-from tqdm import tqdm
-from collections import defaultdict
-from torchvision.io import read_image
-import torch  # PyTorch's core library for building and training deep learning models
-import torch.nn as nn  # Import the neural network module from PyTorch
-import torch.optim as optim  # Import optimization algorithms such as SGD, Adam
-import torch.nn.functional as F  # Import functional utilities like activation functions
-from torch.utils.data import Dataset, DataLoader, random_split # DataLoader for batching, and random_split for splitting data
+import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import datasets, models, transforms
+from torchvision.io import read_image
 from torchvision.models import ResNet50_Weights
-from sklearn.metrics import multilabel_confusion_matrix
-from sklearn.metrics import multilabel_confusion_matrix
-import seaborn as sns
-import matplotlib.pyplot as plt
-import numpy as np
-from sklearn.metrics import multilabel_confusion_matrix
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
 
-# Libraries for data processing and visualization
-from matplotlib import pyplot as plt # For plotting graphs
-import matplotlib.patches as patches # For bounding boxes
-import numpy as np # For numerical operations
+# Data visualization
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 from PIL import Image
-from collections import defaultdict
-from tqdm import tqdm 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score  # For evaluation metrics
+import matplotlib.patches as patches
+
+# Evaluation metrics
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score,
+    confusion_matrix, multilabel_confusion_matrix
+)
 
 # Keep original imports
 plt.rcParams['figure.figsize'] = (15, 15)
@@ -247,24 +235,20 @@ def evaluate_model_with_per_label_metrics(model, test_loader, device):
 
 # Generate confusion matrix
 
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.metrics import multilabel_confusion_matrix
 
 def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=False, cmap=plt.cm.Blues):
     """
     Plot confusion matrices for specific class names in a multilabel classification task.
     Each section of the confusion matrix is annotated as TP, FP, TN, or FN.
-    This function plots confusion matrices for label 1 and label 89 only.
+    This function plots confusion matrices for label 1 (person), label 15 (bench), and label 87 (scissors).
     """
 
     # Compute confusion matrices for each class
     cm_list = multilabel_confusion_matrix(y_true, y_pred)
 
-    # Select class names and confusion matrices for label 1 and label 89
-    selected_classes = [class_names[1], class_names[89]]
-    selected_indices = [0, 88]  # Indices for label 1 and label 89 (0-based indexing)
+    # Select class names and confusion matrices for label 1 (person), label 15 (bench), and label 87 (scissors)
+    selected_classes = [class_names[1], class_names[15], class_names[80]]
+    selected_indices = [0, 14, 70]  # Indices for label 1, label 15, and label 87 (0-based indexing)
     selected_cm_list = [cm_list[i] for i in selected_indices]
 
     # Plot confusion matrices for the selected class names
@@ -296,7 +280,7 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
                 annot[j, k] = f"{labels[j, k]}\n{section_values[j, k]:.2f}" if normalize else f"{labels[j, k]}\n{int(section_values[j, k])}"
 
         # Heatmap visualization with larger font size
-        plt.subplot(1, 2, i + 1)  # Display matrices in a single row for the selected classes
+        plt.subplot(1, num_classes, i + 1)  # Display matrices in a single row for the selected classes
         sns.heatmap(cm, annot=annot, fmt='', cmap=cmap, cbar=False,
                     xticklabels=['Not ' + class_name, class_name],
                     yticklabels=['Not ' + class_name, class_name],

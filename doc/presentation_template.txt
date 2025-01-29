@@ -2,30 +2,8 @@
 
 dont forget to add the comparison between CNN,MLP and RESNET 
 how to deal with overfitting
-there is a correlation between label imbalance and results you get from confusion matrix and f1,accuracy scores
-in one slide, add comparison between confusion matrice,accuracy results with  label with highest occurance and label with lowest occuracne'
-tell them which metric is best
 also look at the klausur pdf and identify potential questions asked
-Infer from confusion matrix and accuracy,fi scores for mlp and CNN
 
-
-
-
-Slide 7: Transfer Learning with ResNet50
-Pretrained vs Untrained ResNet Results:
-Highlight modifications to the final layer for multi-label classification
-Training/Validation loss curves (plot)
-Metrics comparison: Accuracy, Precision, Recall, F1-Score
-Key Insights:
-How transfer learning improved performance
-Differences between pretrained and untrained ResNet
-Slide 8: Model Comparisons
-Tabular/Bar Chart Summary:
-Compare all models (MLP, CNN, ResNet-pretrained, ResNet-untrained) on metrics:
-Accuracy, Precision, Recall, F1-Score
-Trainable parameters
-FLOPs
-Visualize the comparison to emphasize differences
 
 Suggestions for improvement (e.g., advanced augmentation, better handling of imbalance, experimenting with other models)
 End with a strong takeaway or discussion question for your audience
@@ -35,3 +13,41 @@ person:
   Precision: 0.9712
   Recall: 0.9429
   F1 Score: 0.9568
+
+  Label 12:
+  Accuracy: 1.0000
+  Precision: 1.0000
+  Recall: 1.0000
+  F1 Score: 1.0000
+
+  hair drier:
+  Accuracy: 0.9994
+  Precision: 0.0000
+  Recall: 1.0000
+  F1 Score: 0.0000
+
+  Label person:
+
+High Occurrences (262,465):
+The model performs well on this label with:
+Accuracy: 93.78%
+Precision: 97.12%
+Recall: 94.29%
+F1 Score: 95.68%
+This indicates the model is highly reliable at predicting the presence of the "person" label. The high recall shows that it captures most instances of "person," while the high precision confirms that the majority of its predictions are correct.
+
+Label 12 (No Data):
+
+Accuracy: 100%
+Precision, Recall, F1 Score: 1.0 (Perfect Scores)
+These metrics are misleading because label 12 had no data in the dataset.
+Since the label is never present in the ground truth, the model correctly predicts its absence for all instances, resulting in perfect metrics. This highlights that metrics for such labels without data are not meaningful and should be excluded from analysis.
+Label hair drier:
+
+Low Occurrences (198):
+Accuracy: 99.94%
+Precision: 0.00%
+Recall: 1.00%
+F1 Score: 0.00%
+The low precision (0.00%) and high recall (1.00%) indicate that the model predicts all instances of "hair drier" as present, even when they are incorrect. This leads to many false positives.
+The high accuracy (99.94%) is misleading because the label "hair drier" is rare, so predicting it as "not present" for most cases still results in high accuracy.

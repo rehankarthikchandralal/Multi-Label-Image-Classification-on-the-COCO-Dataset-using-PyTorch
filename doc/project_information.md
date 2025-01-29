@@ -166,3 +166,15 @@ Using the same preprocessed dataset and dataloader object (e.g., an image datase
 MLP might struggle to achieve high accuracy because it lacks the capability to capture the spatial structure of the images.
 
 CNN will likely perform better, leveraging its convolutional layers to extract meaningful features from the images.
+
+
+A confusion matrix is a summary of prediction results on a classification problem. In multilabel classification, each instance can belong to multiple classes simultaneously. As a result, the confusion matrix is not a single matrix, but rather a matrix computed for each label (or class) individually.
+
+For each class (label), the confusion matrix contains the following elements:
+
+True Positives (TP): The number of instances where the class was correctly predicted as present.
+False Positives (FP): The number of instances where the class was predicted as present but was actually absent.
+True Negatives (TN): The number of instances where the class was correctly predicted as absent.
+False Negatives (FN): The number of instances where the class was predicted as absent but was actually present.
+
+A confusion matrix is created for each label in the dataset

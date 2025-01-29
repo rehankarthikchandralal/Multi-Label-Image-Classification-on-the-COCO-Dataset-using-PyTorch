@@ -285,7 +285,7 @@ def plot_multilabel_confusion_matrices(y_true, y_pred, class_names, normalize=Fa
                     xticklabels=['Not ' + class_name, class_name],
                     yticklabels=['Not ' + class_name, class_name],
                     annot_kws={"size": 16})  # Increase font size here
-        plt.title(f"Confusion Matrix for Class '{class_name}'", fontsize=18)  # Increase title font size
+        plt.title(f"'{class_name}'", fontsize=18)  # Increase title font size
         plt.xlabel("Predicted", fontsize=16)  # Increase x-axis label font size
         plt.ylabel("Actual", fontsize=16)  # Increase y-axis label font size
 

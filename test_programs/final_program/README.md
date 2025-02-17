@@ -82,7 +82,7 @@ By default, the code will:
 - Load the annotations file (`instances_train2017_mod.json`)
 - Instantiate the `CocoDetection` dataset with appropriate transforms (resize to 224×224, normalization, etc.)
 - Split the dataset into training, validation, and test sets
-- Set up and train a multi-layer perceptron (MLP) model (`CustomMLP`) or a pretrained ResNet50 model
+- Set up and train a multi-layer perceptron (MLP) model (`CustomMLP`) or a pretrained ResNet50 model or a CNN model
 - Evaluate the model using metrics like accuracy, precision, recall, and F1-score
 - Save model checkpoints during training
 
@@ -96,6 +96,7 @@ By default, the code will:
 
 3. **Model Definition**  
    - `CustomMLP` is a simple MLP that flattens the input image and passes it through fully connected layers.
+   - A CNN is also available for training
    - A pretrained ResNet50 model is also demonstrated for fine-tuning.
 
 4. **Training & Evaluation**  
@@ -112,7 +113,7 @@ By default, the code will:
 ## Customization
 
 - **Changing the Model**  
-  Replace or modify `CustomMLP` or the ResNet50 model as needed. Ensure the output layer matches the number of categories (80 for COCO).
+  Replace or modify `CustomMLP` or the ResNet50 model or the CNN model as needed. Ensure the output layer matches the number of categories (80 for COCO).
 
 - **Hyperparameters**  
   Adjust parameters such as `batch_size`, `learning_rate`, and `epochs` in the code.
@@ -125,7 +126,7 @@ By default, the code will:
 ## Results and Evaluation
 
 - **Loss Curves**  
-  The code includes a section (Task 7) that plots training and validation loss over epochs.
+  The code includes a section  that plots training and validation loss over epochs.
 
 - **Confusion Matrix & Metrics**  
   The code prints true positives, false positives, etc., and computes accuracy, precision, recall, and F1-score per category.

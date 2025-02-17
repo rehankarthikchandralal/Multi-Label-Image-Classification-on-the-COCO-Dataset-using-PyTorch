@@ -1,5 +1,7 @@
+numpy
 pandas
 matplotlib
+seaborn
 Pillow
 torch
 torchvision

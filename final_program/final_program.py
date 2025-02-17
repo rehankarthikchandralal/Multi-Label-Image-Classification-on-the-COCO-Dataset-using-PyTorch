@@ -479,9 +479,7 @@ f1_RN = 2*(precision_RN*recall_RN)/(precision_RN+recall_RN) if (precision_RN+rec
 
 print(accuracy_RN, precision_RN, recall_RN, f1_RN)
 
-# ------------------------------------------------------------------------------
-# TASK 7: Simple demonstration of plotting losses
-# ------------------------------------------------------------------------------
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -507,27 +505,51 @@ plt.grid(True, linestyle='--', alpha=0.6)
 plt.show()
 
 # ------------------------------------------------------------------------------
-# Additional CNN Model example (CustomCNN) and evaluation code
+# TASK 7: FLOPs, MACs, and Parameter Calculation for Different Models
 # ------------------------------------------------------------------------------
+#MLP Model
+
+from calflops import calculate_flops # Import the function to calculate FLOPs, MACs, and parameters
+from torchvision import models # Import pre-trained models from torchvision
+
+batch_size = 16 # Define batch size for FLOP calculations: number of images processed at once
+input_shape = (batch_size, 3, 224, 224) # Define input shape based on the batch size, number of channels (3 for RGB), and image dimensions (224x224)
+# Compute FLOPs (Floating Point Operations), MACs (Multiply-Accumulate Operations), and total parameters
+flops, macs, params = calculate_flops(model=oop_model, # Model being analyzed
+                                      input_shape=input_shape, # Input shape of the data
+                                      output_as_string=True, # Format output as readable strings
+                                      output_precision=4) # Precision for numerical output
+print("Alexnet FLOPs:%s   MACs:%s   Params:%s \n" %(flops, macs, params))
+
+
+# Define the CNN Model class inheriting from nn.Module
 class CustomCNN(nn.Module):
     def __init__(self):
-        super(CustomCNN, self).__init__()
+        super(CustomCNN, self).__init__()  # Call the parent class's constructor
+
+        # Define the layers of the CNN
+        # Convolutional Layer 1: 16 filters, kernel size 3x3, stride 1, padding 1
         self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
-        self.relu1 = nn.ReLU()
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.relu1 = nn.ReLU()  # ReLU activation for Conv1
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max Pooling Layer
 
+        # Convolutional Layer 2: 32 filters, kernel size 3x3, stride 1, padding 1
         self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.relu2 = nn.ReLU()
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.relu2 = nn.ReLU()  # ReLU activation for Conv2
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max Pooling Layer
 
+        # Convolutional Layer 3: 64 filters, kernel size 3x3, stride 1, padding 1
         self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
-        self.relu3 = nn.ReLU()
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.relu3 = nn.ReLU()  # ReLU activation for Conv3
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max Pooling Layer
 
-        # After 3 pooling layers on a 224x224 input => (224 / 2 / 2 / 2) = 28
-        self.fc = nn.Linear(64 * 28 * 28, 90)
+        # Fully connected layer: input size depends on flattened dimensions, output size is 80
+        self.fc = nn.Linear(64 * 28 * 28, 90)  # Calculate 28*28 from the input size (224x224) after 3 pooling layers
+
+        # Output activation function
         self.sigmoid = nn.Sigmoid()
 
+    # Define the forward pass
     def forward(self, x):
         x = self.conv1(x)
         x = self.relu1(x)
@@ -541,60 +563,212 @@ class CustomCNN(nn.Module):
         x = self.relu3(x)
         x = self.pool3(x)
 
-        x = x.view(x.size(0), -1)  # Flatten
-        x = self.fc(x)
-        return self.sigmoid(x)
+        x = x.view(x.size(0), -1)  # Flatten the feature maps
+        x = self.fc(x)  # Fully connected layer
+
+        return self.sigmoid(x)  # Sigmoid activation for multi-label classification
+
+# Instantiate the CNN model
+cnn_model = CustomCNN().to(device)  # Move the model to the device (GPU/CPU)
+
+#CNN Model
+
+from calflops import calculate_flops # Import the function to calculate FLOPs, MACs, and parameters
+from torchvision import models # Import pre-trained models from torchvision
+
+batch_size = 16 # Define batch size for FLOP calculations: number of images processed at once
+input_shape = (batch_size, 3, 224, 224) # Define input shape based on the batch size, number of channels (3 for RGB), and image dimensions (224x224)
+# Compute FLOPs (Floating Point Operations), MACs (Multiply-Accumulate Operations), and total parameters
+flops, macs, params = calculate_flops(model=cnn_model, # Model being analyzed
+                                      input_shape=input_shape, # Input shape of the data
+                                      output_as_string=True, # Format output as readable strings
+                                      output_precision=4) # Precision for numerical output
+print("Alexnet FLOPs:%s   MACs:%s   Params:%s \n" %(flops, macs, params))
+
+# ResNet50 model (Not Pretrained) for multi-label classification
+class ResNet50(nn.Module):
+    def __init__(self, num_classes=80, weights=None):
+        super(ResNet50, self).__init__()
+        self.resnet = models.resnet50(weights=weights) # Load ResNet50 with weights
+        self.resnet.fc = nn.Linear(2048, 80) # Replace the last fully connected layer with a new one for multi-label classification
+        self.sigmoid = nn.Sigmoid() # Sigmoid activation function for output
+
+    def forward(self, x):
+        x = self.resnet(x) # Forward pass through resnet
+        x = self.sigmoid(x) # Apply sigmoid to output
+        return x
+
+#device = torch.device('cpu')
+resNet50_model = ResNet50().to(device)
+
+
+from calflops import calculate_flops # Import the function to calculate FLOPs, MACs, and parameters
+from torchvision import models # Import pre-trained models from torchvision
+
+batch_size = 16 # Define batch size for FLOP calculations: number of images processed at once
+input_shape = (batch_size, 3, 224, 224) # Define input shape based on the batch size, number of channels (3 for RGB), and image dimensions (224x224)
+# Compute FLOPs (Floating Point Operations), MACs (Multiply-Accumulate Operations), and total parameters
+flops, macs, params = calculate_flops(model=resNet50_model, # Model being analyzed
+                                      input_shape=input_shape, # Input shape of the data
+                                      output_as_string=True, # Format output as readable strings
+                                      output_precision=4) # Precision for numerical output
+print("Alexnet FLOPs:%s   MACs:%s   Params:%s \n" %(flops, macs, params))
+
+for batch_idx, (data, target) in enumerate(test_loader):
+    print(batch_idx)
+    if batch_idx == 15:
+        break
+    data, target = data.to(device), target.to(device)  # Move data and target to the appropriate device (GPU/CPU)
+    # Forward pass: compute predicted outputs by passing data through the model
+    output = pretrained_model(data)
+
+
+output = torch.round(output)[0].detach().numpy()
+
+print(output)
+
+
+for i in range(len(classes)):
+    if output[i] == 1:
+        print(classes[i])
+
+
+img_test, target_test = test_data.__getitem__(15)
+
+print(target)
+print(target_test)
+
+print(img_test.size())
+
+# Convert the tensor to a numpy array and rearrange to [H, W, C] for matplotlib
+image_numpy = img_test.permute(1, 2, 0).numpy()
+
+# Normalize the values to be between 0 and 1 for proper visualization
+# (this step assumes the tensor values are between -1 and 1, adjust as needed)
+image_numpy = (image_numpy - image_numpy.min()) / (image_numpy.max() - image_numpy.min())
+
+# Plot the image
+plt.imshow(image_numpy)
+plt.axis('off')  # Turn off axis
+plt.show()
+
+target_test = target_test.numpy()
+
+for i in range(len(classes)):
+    if target_test[i] == 1:
+        print(classes[i])
+        
+
+class CustomCNN(nn.Module):
+    def __init__(self):
+        super(CustomCNN, self).__init__()  # Call the parent class's constructor
+
+        # Define the layers of the CNN
+        # Convolutional Layer 1: 16 filters, kernel size 3x3, stride 1, padding 1
+        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
+        self.relu1 = nn.ReLU()  # ReLU activation for Conv1
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max Pooling Layer
+
+        # Convolutional Layer 2: 32 filters, kernel size 3x3, stride 1, padding 1
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.relu2 = nn.ReLU()  # ReLU activation for Conv2
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max Pooling Layer
+
+        # Convolutional Layer 3: 64 filters, kernel size 3x3, stride 1, padding 1
+        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        self.relu3 = nn.ReLU()  # ReLU activation for Conv3
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max Pooling Layer
+
+        # Fully connected layer: input size depends on flattened dimensions, output size is 80
+        self.fc = nn.Linear(64 * 28 * 28, 90)  # Calculate 28*28 from the input size (224x224) after 3 pooling layers
+
+        # Output activation function
+        self.sigmoid = nn.Sigmoid()
+
+    # Define the forward pass
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.pool1(x)
+
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.pool2(x)
+
+        x = self.conv3(x)
+        x = self.relu3(x)
+        x = self.pool3(x)
+
+        x = x.view(x.size(0), -1)  # Flatten the feature maps
+        x = self.fc(x)  # Fully connected layer
+
+        return self.sigmoid(x)  # Sigmoid activation for multi-label classification
 
 cnn_model = CustomCNN().to(device)
-cnn_model.load_state_dict(torch.load('model_checkpoint_epoch_15_cnn.pth', 
-                                     weights_only=True, 
-                                     map_location=torch.device('cpu'))['model_state_dict'])
+cnn_model.load_state_dict(torch.load('model_checkpoint_epoch_15_cnn.pth', weights_only=True, map_location=torch.device('cpu'))['model_state_dict'])
 cnn_model.eval()
-
-# Prepare to count predictions
+# prepare to count predictions for each class
 true_positive_cnn_model = {classname: 0 for classname in classes}
 false_positive_cnn_model = {classname: 0 for classname in classes}
 false_negative_cnn_model = {classname: 0 for classname in classes}
 true_negative_cnn_model = {classname: 0 for classname in classes}
 
+
+# again no gradients needed
 with torch.no_grad():
     for batch_idx, (data, target) in enumerate(test_loader):
-        data, target = data.to(device), target.to(device)
-        output = cnn_model(data)
-        target = target[0]
-        output = torch.round(output)[0]
+        data, target = data.to(device), target.to(device) 
 
+        output = cnn_model(data)
+
+        target = target[0]
+        #print(target)
+
+        output = torch.round(output)
+        output = output[0]
+        #print(output)
+
+        # collect the correct predictions for each class
         for index, (label, prediction) in enumerate(zip(target, output)):
+            #print(label)
+            #print(prediction)
             if label == prediction:
+                #print('true')
                 if prediction == 1.:
+                    #print('positive')
                     true_positive_cnn_model[classes[index]] += 1
                 else:
+                    #print('negative')
                     true_negative_cnn_model[classes[index]] += 1
             else:
                 if prediction == 1:
                     false_positive_cnn_model[classes[index]] += 1
                 else:
                     false_negative_cnn_model[classes[index]] += 1
-
 cat = 'chair'
-tp_rn = true_positive_cnn_model[cat] / (true_positive_cnn_model[cat] + false_negative_cnn_model[cat]) if (true_positive_cnn_model[cat] + false_negative_cnn_model[cat]) > 0 else 0
-fn_rn = false_negative_cnn_model[cat] / (true_positive_cnn_model[cat] + false_negative_cnn_model[cat]) if (true_positive_cnn_model[cat] + false_negative_cnn_model[cat]) > 0 else 0
-tn_rn = true_negative_cnn_model[cat] / (true_negative_cnn_model[cat] + false_positive_cnn_model[cat]) if (true_negative_cnn_model[cat] + false_positive_cnn_model[cat]) > 0 else 0
-fp_rn = false_positive_cnn_model[cat] / (false_positive_cnn_model[cat] + true_negative_cnn_model[cat]) if (false_positive_cnn_model[cat] + true_negative_cnn_model[cat]) > 0 else 0
 
-print(tp_rn, fn_rn, fp_rn, tn_rn)
-print(true_positive_cnn_model[cat], false_negative_cnn_model[cat], 
-      false_positive_cnn_model[cat], true_negative_cnn_model[cat])
+tp_rn = true_positive_cnn_model[cat]/(true_positive_cnn_model[cat]+false_negative_cnn_model[cat])
+fn_rn= false_negative_cnn_model[cat]/(true_positive_cnn_model[cat]+false_negative_cnn_model[cat])
+tn_rn = true_negative_cnn_model[cat]/(true_negative_cnn_model[cat]+false_positive_cnn_model[cat])
+fp_rn = false_positive_cnn_model[cat]/(false_positive_cnn_model[cat]+true_negative_cnn_model[cat])
 
-accuracy_RN = (true_positive_cnn_model[cat] + true_negative_cnn_model[cat]) / (
-    true_positive_cnn_model[cat] + 
-    true_negative_cnn_model[cat] + 
-    false_positive_cnn_model[cat] + 
-    false_negative_cnn_model[cat]
-) if (true_positive_cnn_model[cat] + true_negative_cnn_model[cat] + false_positive_cnn_model[cat] + false_negative_cnn_model[cat]) > 0 else 0
+print(tp_rn)
+print(fn_rn)
+print(fp_rn)
+print(tn_rn)
 
-precision_RN = true_positive_cnn_model[cat] / (true_positive_cnn_model[cat] + false_positive_cnn_model[cat]) if (true_positive_cnn_model[cat] + false_positive_cnn_model[cat]) > 0 else 0
-recall_RN = true_positive_cnn_model[cat] / (true_positive_cnn_model[cat] + false_negative_cnn_model[cat]) if (true_positive_cnn_model[cat] + false_negative_cnn_model[cat]) > 0 else 0
-f1_RN = 2 * (precision_RN * recall_RN) / (precision_RN + recall_RN) if (precision_RN + recall_RN) > 0 else 0
+print(true_positive_cnn_model[cat])
+print(false_negative_cnn_model[cat])
+print(false_positive_cnn_model[cat])
+print(true_negative_cnn_model[cat])
 
-print(accuracy_RN, precision_RN, recall_RN, f1_RN)
+#Model Evaluation and Metrics RN Model
+accuracy_RN= (true_positive_cnn_model[cat]+true_negative_cnn_model[cat])/(true_positive_cnn_model[cat]+true_negative_cnn_model[cat]+false_positive_cnn_model[cat]+false_negative_cnn_model[cat])
+precision_RN = true_positive_cnn_model[cat]/(true_positive_cnn_model[cat]+false_positive_cnn_model[cat])
+recall_RN = true_positive_cnn_model[cat]/(true_positive_cnn_model[cat]+false_negative_cnn_model[cat])
+f1_RN = 2*(precision_RN*recall_RN)/(precision_RN+recall_RN)
+
+print(accuracy_RN)
+print(precision_RN)
+print(recall_RN)
+print(f1_RN)

@@ -8,3 +8,4 @@ torchvision
 pycocotools
 scikit-learn
 tqdm
+calflops

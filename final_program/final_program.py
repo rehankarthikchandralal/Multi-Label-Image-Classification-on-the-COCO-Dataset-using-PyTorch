@@ -570,6 +570,73 @@ class CustomCNN(nn.Module):
 
 # Instantiate the CNN model
 cnn_model = CustomCNN().to(device)  # Move the model to the device (GPU/CPU)
+cnn_model.load_state_dict(torch.load('model_checkpoint_epoch_15_cnn.pth', weights_only=True, map_location=torch.device('cpu'))['model_state_dict'])
+cnn_model.eval()
+# prepare to count predictions for each class
+true_positive_cnn_model = {classname: 0 for classname in classes}
+false_positive_cnn_model = {classname: 0 for classname in classes}
+false_negative_cnn_model = {classname: 0 for classname in classes}
+true_negative_cnn_model = {classname: 0 for classname in classes}
+
+
+# again no gradients needed
+with torch.no_grad():
+    for batch_idx, (data, target) in enumerate(test_loader):
+        data, target = data.to(device), target.to(device) 
+
+        output = cnn_model(data)
+
+        target = target[0]
+        #print(target)
+
+        output = torch.round(output)
+        output = output[0]
+        #print(output)
+
+        # collect the correct predictions for each class
+        for index, (label, prediction) in enumerate(zip(target, output)):
+            #print(label)
+            #print(prediction)
+            if label == prediction:
+                #print('true')
+                if prediction == 1.:
+                    #print('positive')
+                    true_positive_cnn_model[classes[index]] += 1
+                else:
+                    #print('negative')
+                    true_negative_cnn_model[classes[index]] += 1
+            else:
+                if prediction == 1:
+                    false_positive_cnn_model[classes[index]] += 1
+                else:
+                    false_negative_cnn_model[classes[index]] += 1
+cat = 'chair'
+
+tp_rn = true_positive_cnn_model[cat]/(true_positive_cnn_model[cat]+false_negative_cnn_model[cat])
+fn_rn= false_negative_cnn_model[cat]/(true_positive_cnn_model[cat]+false_negative_cnn_model[cat])
+tn_rn = true_negative_cnn_model[cat]/(true_negative_cnn_model[cat]+false_positive_cnn_model[cat])
+fp_rn = false_positive_cnn_model[cat]/(false_positive_cnn_model[cat]+true_negative_cnn_model[cat])
+
+print(tp_rn)
+print(fn_rn)
+print(fp_rn)
+print(tn_rn)
+
+print(true_positive_cnn_model[cat])
+print(false_negative_cnn_model[cat])
+print(false_positive_cnn_model[cat])
+print(true_negative_cnn_model[cat])
+
+#Model Evaluation and Metrics RN Model
+accuracy_RN= (true_positive_cnn_model[cat]+true_negative_cnn_model[cat])/(true_positive_cnn_model[cat]+true_negative_cnn_model[cat]+false_positive_cnn_model[cat]+false_negative_cnn_model[cat])
+precision_RN = true_positive_cnn_model[cat]/(true_positive_cnn_model[cat]+false_positive_cnn_model[cat])
+recall_RN = true_positive_cnn_model[cat]/(true_positive_cnn_model[cat]+false_negative_cnn_model[cat])
+f1_RN = 2*(precision_RN*recall_RN)/(precision_RN+recall_RN)
+
+print(accuracy_RN)
+print(precision_RN)
+print(recall_RN)
+print(f1_RN)
 
 #CNN Model
 
@@ -658,117 +725,3 @@ for i in range(len(classes)):
     if target_test[i] == 1:
         print(classes[i])
         
-
-class CustomCNN(nn.Module):
-    def __init__(self):
-        super(CustomCNN, self).__init__()  # Call the parent class's constructor
-
-        # Define the layers of the CNN
-        # Convolutional Layer 1: 16 filters, kernel size 3x3, stride 1, padding 1
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, stride=1, padding=1)
-        self.relu1 = nn.ReLU()  # ReLU activation for Conv1
-        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max Pooling Layer
-
-        # Convolutional Layer 2: 32 filters, kernel size 3x3, stride 1, padding 1
-        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, stride=1, padding=1)
-        self.relu2 = nn.ReLU()  # ReLU activation for Conv2
-        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max Pooling Layer
-
-        # Convolutional Layer 3: 64 filters, kernel size 3x3, stride 1, padding 1
-        self.conv3 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
-        self.relu3 = nn.ReLU()  # ReLU activation for Conv3
-        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)  # 2x2 Max Pooling Layer
-
-        # Fully connected layer: input size depends on flattened dimensions, output size is 80
-        self.fc = nn.Linear(64 * 28 * 28, 90)  # Calculate 28*28 from the input size (224x224) after 3 pooling layers
-
-        # Output activation function
-        self.sigmoid = nn.Sigmoid()
-
-    # Define the forward pass
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.relu1(x)
-        x = self.pool1(x)
-
-        x = self.conv2(x)
-        x = self.relu2(x)
-        x = self.pool2(x)
-
-        x = self.conv3(x)
-        x = self.relu3(x)
-        x = self.pool3(x)
-
-        x = x.view(x.size(0), -1)  # Flatten the feature maps
-        x = self.fc(x)  # Fully connected layer
-
-        return self.sigmoid(x)  # Sigmoid activation for multi-label classification
-
-cnn_model = CustomCNN().to(device)
-cnn_model.load_state_dict(torch.load('model_checkpoint_epoch_15_cnn.pth', weights_only=True, map_location=torch.device('cpu'))['model_state_dict'])
-cnn_model.eval()
-# prepare to count predictions for each class
-true_positive_cnn_model = {classname: 0 for classname in classes}
-false_positive_cnn_model = {classname: 0 for classname in classes}
-false_negative_cnn_model = {classname: 0 for classname in classes}
-true_negative_cnn_model = {classname: 0 for classname in classes}
-
-
-# again no gradients needed
-with torch.no_grad():
-    for batch_idx, (data, target) in enumerate(test_loader):
-        data, target = data.to(device), target.to(device) 
-
-        output = cnn_model(data)
-
-        target = target[0]
-        #print(target)
-
-        output = torch.round(output)
-        output = output[0]
-        #print(output)
-
-        # collect the correct predictions for each class
-        for index, (label, prediction) in enumerate(zip(target, output)):
-            #print(label)
-            #print(prediction)
-            if label == prediction:
-                #print('true')
-                if prediction == 1.:
-                    #print('positive')
-                    true_positive_cnn_model[classes[index]] += 1
-                else:
-                    #print('negative')
-                    true_negative_cnn_model[classes[index]] += 1
-            else:
-                if prediction == 1:
-                    false_positive_cnn_model[classes[index]] += 1
-                else:
-                    false_negative_cnn_model[classes[index]] += 1
-cat = 'chair'
-
-tp_rn = true_positive_cnn_model[cat]/(true_positive_cnn_model[cat]+false_negative_cnn_model[cat])
-fn_rn= false_negative_cnn_model[cat]/(true_positive_cnn_model[cat]+false_negative_cnn_model[cat])
-tn_rn = true_negative_cnn_model[cat]/(true_negative_cnn_model[cat]+false_positive_cnn_model[cat])
-fp_rn = false_positive_cnn_model[cat]/(false_positive_cnn_model[cat]+true_negative_cnn_model[cat])
-
-print(tp_rn)
-print(fn_rn)
-print(fp_rn)
-print(tn_rn)
-
-print(true_positive_cnn_model[cat])
-print(false_negative_cnn_model[cat])
-print(false_positive_cnn_model[cat])
-print(true_negative_cnn_model[cat])
-
-#Model Evaluation and Metrics RN Model
-accuracy_RN= (true_positive_cnn_model[cat]+true_negative_cnn_model[cat])/(true_positive_cnn_model[cat]+true_negative_cnn_model[cat]+false_positive_cnn_model[cat]+false_negative_cnn_model[cat])
-precision_RN = true_positive_cnn_model[cat]/(true_positive_cnn_model[cat]+false_positive_cnn_model[cat])
-recall_RN = true_positive_cnn_model[cat]/(true_positive_cnn_model[cat]+false_negative_cnn_model[cat])
-f1_RN = 2*(precision_RN*recall_RN)/(precision_RN+recall_RN)
-
-print(accuracy_RN)
-print(precision_RN)
-print(recall_RN)
-print(f1_RN)
